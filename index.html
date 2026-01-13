@@ -27,7 +27,7 @@
         .item-card img { transition: transform 0.3s; }
         .item-card:hover img { transform: scale(1.05); }
         .item-card.selected { border: 2px solid #b0916a; }
-        .item-card.disabled { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+        .item-card.disabled { opacity: 0.4; filter: grayscale(1); pointer-events: none; cursor: not-allowed; }
 
         /* 進度條 */
         .progress-dot.active { background-color: #b0916a; box-shadow: 0 0 0 4px rgba(176, 145, 106, 0.2); }
@@ -38,6 +38,12 @@
             .pdf-page { padding: 0 !important; border: none !important; box-shadow: none !important; }
             body { background: white; }
         }
+
+        /* [Muzen Update] 新增自定義樣式 */
+        .box-visual-slot { border: 2px dashed #e5e0d8; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background: #fff; }
+        .box-visual-slot img { width: 100%; height: 100%; object-fit: cover; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        /* [Muzen Update] 結束 */
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -71,18 +77,18 @@
                         <input type="text" id="company-name" class="w-full border-gray-200 border rounded-lg p-3 focus:ring-2 focus:ring-[#b0916a] outline-none" placeholder="例：木人艸股份有限公司">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-sm font-bold">統一編號 (選填)</label>
-                        <input type="text" id="tax-id" maxlength="8" class="w-full border-gray-200 border rounded-lg p-3 outline-none" placeholder="8 碼數字">
+                        <label class="text-sm font-bold">統一編號 <span class="text-red-500">*</span></label>
+                        <input type="text" id="tax-id" maxlength="8" class="w-full border-gray-200 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#b0916a]" placeholder="請輸入 8 碼統編">
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-bold flex items-center gap-1">聯絡人姓名 <span class="text-red-500">*</span></label>
-                        <input type="text" id="contact-name" class="w-full border-gray-200 border rounded-lg p-3 outline-none" placeholder="請輸入姓名">
+                        <input type="text" id="contact-name" class="w-full border-gray-200 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#b0916a]" placeholder="請輸入姓名">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-sm font-bold flex items-center gap-1">手機號碼 <span class="text-red-500">*</span></label>
-                        <input type="tel" id="contact-phone" class="w-full border-gray-200 border rounded-lg p-3 outline-none" placeholder="09XX-XXX-XXX">
+                        <label class="text-sm font-bold flex items-center gap-1">聯繫電話 <span class="text-red-500">*</span></label>
+                        <input type="tel" id="contact-phone" class="w-full border-gray-200 border rounded-lg p-3 outline-none focus:ring-2 focus:ring-[#b0916a]" placeholder="例：0912345678">
                     </div>
-                </div>
+                    </div>
 
                 <div class="mt-10 flex justify-end">
                     <button onclick="goToStep(2)" class="bg-[#333] text-white px-10 py-4 rounded-full font-bold hover:bg-black transition shadow-lg flex items-center gap-2">
@@ -178,7 +184,13 @@
                         <div id="items-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             </div>
                     </div>
-                </div>
+                    
+                    <div class="bg-stone-100 p-8 rounded-3xl border border-dashed border-muzen">
+                        <h3 class="text-center text-stone-400 text-xs font-bold tracking-widest uppercase mb-6">Muzen Box Simulation / AI 預覽</h3>
+                        <div id="visual-box-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                            </div>
+                    </div>
+                    </div>
 
                 <div class="w-full lg:w-80">
                     <div class="bg-white p-6 rounded-2xl border border-muzen sticky top-24">
@@ -203,13 +215,14 @@
 
     <script>
         // 資料定義 (實際可連動 Excel 資料)
+        // [Muzen Update] 修改品項定義，增加 volume (格子佔比) 邏輯
         const products = [
-            { id: 'S01', name: '法式鹹派', type: 'large', price: 65, img: 'https://via.placeholder.com/150?text=Quiche' },
-            { id: 'S02', name: '牛肉迷你漢堡', type: 'large', price: 75, img: 'https://via.placeholder.com/150?text=Burger' },
-            { id: 'D01', name: '瑪德蓮', type: 'small', price: 45, img: 'https://via.placeholder.com/150?text=Madeleine' },
-            { id: 'D02', name: '檸檬塔', type: 'small', price: 55, img: 'https://via.placeholder.com/150?text=LemonTart' },
-            { id: 'D03', name: '馬卡龍', type: 'small', price: 40, img: 'https://via.placeholder.com/150?text=Macaron' },
-            { id: 'D04', name: '可麗露', type: 'small', price: 60, img: 'https://via.placeholder.com/150?text=Canelé' }
+            { id: 'S01', name: '法式鹹派', type: 'large', volume: 2, price: 65, img: 'https://via.placeholder.com/150?text=Quiche' },
+            { id: 'S02', name: '牛肉迷你漢堡', type: 'large', volume: 2, price: 75, img: 'https://via.placeholder.com/150?text=Burger' },
+            { id: 'D01', name: '瑪德蓮', type: 'small', volume: 1, price: 45, img: 'https://via.placeholder.com/150?text=Madeleine' },
+            { id: 'D02', name: '檸檬塔', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=LemonTart' },
+            { id: 'D03', name: '馬卡龍', type: 'small', volume: 1, price: 40, img: 'https://via.placeholder.com/150?text=Macaron' },
+            { id: 'D04', name: '可麗露', type: 'small', volume: 1, price: 60, img: 'https://via.placeholder.com/150?text=Canelé' }
         ];
 
         let currentState = {
@@ -225,10 +238,23 @@
         };
 
         function goToStep(step) {
-            // 基本驗證
-            if (step === 2 && !document.getElementById('company-name').value) {
-                alert('請填寫公司名稱'); return;
+            // [Muzen Update] 強化 Step 1 的首屏攔截驗證
+            if (step === 2) {
+                const company = document.getElementById('company-name').value.trim();
+                const tax = document.getElementById('tax-id').value.trim();
+                const phone = document.getElementById('contact-phone').value.trim();
+                const name = document.getElementById('contact-name').value.trim();
+
+                if (!company || !tax || !phone || !name) {
+                    alert('請完整填寫公司資訊、統編與聯繫電話以繼續報價。');
+                    return;
+                }
+                if (tax.length !== 8) {
+                    alert('統一編號格式錯誤，應為 8 碼數字。');
+                    return;
+                }
             }
+            // [Muzen Update] 結束
 
             document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
             document.getElementById(`step-${step}`).classList.add('active');
@@ -242,7 +268,7 @@
             const labels = ["基本資訊", "選擇盒型", "搭配餐點"];
             document.getElementById('step-label').innerText = labels[step-1];
             currentState.step = step;
-            window.scrollTo(0,0);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function selectBox(id, name, avgPrice, slots) {
@@ -258,7 +284,19 @@
             document.getElementById('mode-selection').classList.remove('hidden');
             document.getElementById('slots-count').innerText = slots;
             
-            // 滾動到模式選擇
+            // [Muzen Update] 動態生成視覺模擬格子
+            const visualBox = document.getElementById('visual-box-container');
+            visualBox.innerHTML = '';
+            for(let i=0; i<slots; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'box-visual-slot';
+                slot.id = `visual-slot-${i}`;
+                slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
+                visualBox.appendChild(slot);
+            }
+            // [Muzen Update] 結束
+
+            // 平滑滾動到模式選擇
             document.getElementById('mode-selection').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -269,7 +307,6 @@
                 goToStep(3);
             } else {
                 alert('固定套餐正在為您加載主廚精選圖庫...');
-                // 這裡可以導向套餐展示頁
             }
         }
 
@@ -277,79 +314,114 @@
             const grid = document.getElementById('items-grid');
             grid.innerHTML = '';
             
-            const filtered = products.filter(p => p.type === zoneType);
-            
-            filtered.forEach(p => {
+            // [Muzen Update] 智慧分區挑選機制：過濾剩餘空間不足的品項
+            products.forEach(p => {
                 const isSelected = currentState.selectedItems.find(i => i.id === p.id);
-                const card = document.createElement('div');
-                card.className = `item-card border p-3 rounded-xl bg-gray-50 cursor-pointer ${isSelected ? 'selected' : ''}`;
-                card.innerHTML = `
-                    <div class="aspect-video rounded-lg overflow-hidden mb-2">
-                        <img src="${p.img}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="text-sm font-bold">${p.name}</div>
-                    <div class="text-xs text-muzen-gold">$${p.price}</div>
-                `;
-                card.onclick = () => toggleItem(p);
-                grid.appendChild(card);
+                // 判斷剩餘空間是否足以放入該品項
+                const canFit = p.volume <= currentState.remainingSlots;
+                const isTypeMatch = p.type === zoneType;
+                
+                // 如果是當前區域類型，則顯示；若空間不足則設為 Disabled
+                if (isTypeMatch) {
+                    const card = document.createElement('div');
+                    card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelected ? 'selected' : ''} ${!canFit && !isSelected ? 'disabled' : ''}`;
+                    card.innerHTML = `
+                        <div class="aspect-video rounded-lg overflow-hidden mb-2">
+                            <img src="${p.img}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="text-sm font-bold">${p.name}</div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs text-muzen-gold font-bold">$${p.price}</span>
+                            <span class="text-[10px] bg-stone-100 px-1 rounded">佔 ${p.volume} 格</span>
+                        </div>
+                    `;
+                    card.onclick = () => canFit || isSelected ? toggleItem(p) : null;
+                    grid.appendChild(card);
+                }
             });
+            // [Muzen Update] 結束
 
-            // 更新標題
             document.getElementById('zone-title').innerText = zoneType === 'large' ? 'Zone 1: 大體積品項' : 'Zone 2: 點綴品項';
-            document.getElementById('zone-desc').innerText = zoneType === 'large' ? '請先挑選主食類點心' : '請填滿剩餘的格子空間';
+            document.getElementById('zone-desc').innerText = zoneType === 'large' ? '請先挑選主食類點心 (佔2格)' : '請填滿剩餘的格子空間 (佔1格)';
         }
 
         function toggleItem(item) {
             const index = currentState.selectedItems.findIndex(i => i.id === item.id);
             
             if (index > -1) {
+                // 取消選取
                 currentState.selectedItems.splice(index, 1);
-                currentState.remainingSlots++;
+                currentState.remainingSlots += item.volume;
             } else {
-                if (currentState.remainingSlots <= 0) {
-                    alert('盒子已經滿囉！'); return;
+                // 加入選取
+                if (currentState.remainingSlots < item.volume) {
+                    alert('空間不足，請選擇較小的品項或移除已選項目。'); return;
                 }
                 currentState.selectedItems.push(item);
-                currentState.remainingSlots--;
+                currentState.remainingSlots -= item.volume;
             }
 
-            // 智慧切換 Zone
-            if (currentState.currentZone === 'large' && currentState.selectedItems.length >= 2) {
+            // [Muzen Update] 智慧路徑引導：Zone 1 完成後自動切換 Zone 2
+            if (currentState.currentZone === 'large' && currentState.remainingSlots < 2) {
                 currentState.currentZone = 'small';
                 setTimeout(() => renderItems('small'), 300);
+            } else if (currentState.currentZone === 'small' && currentState.selectedItems.filter(i => i.type === 'large').length === 0) {
+                 // 如果大體積都被取消了，切回 Zone 1
+                 currentState.currentZone = 'large';
+                 renderItems('large');
+            } else {
+                renderItems(currentState.currentZone);
             }
+            // [Muzen Update] 結束
 
             updateUI();
         }
 
         function updateUI() {
-            // 格子數
             document.getElementById('slots-count').innerText = currentState.remainingSlots;
             
-            // 購物籃
             const cartList = document.getElementById('cart-list');
             if (currentState.selectedItems.length === 0) {
                 cartList.innerHTML = '<p class="text-gray-300 text-sm italic">尚未選擇品項...</p>';
             } else {
                 cartList.innerHTML = currentState.selectedItems.map(i => `
-                    <div class="flex justify-between text-sm animate-fade-in">
-                        <span>${i.name}</span>
-                        <span class="font-mono">$${i.price}</span>
+                    <div class="flex justify-between items-center text-sm animate-fade-in py-1 border-b border-stone-50">
+                        <span class="font-medium">${i.name}</span>
+                        <span class="font-mono text-muzen-gold">$${i.price}</span>
                     </div>
                 `).join('');
             }
 
-            // 金額
+            // [Muzen Update] 動態總金額計算
             const subtotal = currentState.selectedItems.reduce((sum, i) => sum + i.price, 0);
             document.getElementById('box-price').innerText = `$${subtotal}`;
             document.getElementById('grand-total').innerText = `$${(subtotal * 100).toLocaleString()}`;
+            // [Muzen Update] 結束
+
+            // [Muzen Update] 視覺聯動：AI 合成入盒視覺效果
+            // 先清空所有格子
+            for(let i=0; i<currentState.maxSlots; i++) {
+                const slot = document.getElementById(`visual-slot-${i}`);
+                if (slot) slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
+            }
+
+            // 填充選取的圖片，大型品項佔據多格邏輯示意
+            let slotIndex = 0;
+            currentState.selectedItems.forEach(item => {
+                const slot = document.getElementById(`visual-slot-${slotIndex}`);
+                if (slot) {
+                    slot.innerHTML = `<img src="${item.img}" title="${item.name}">`;
+                    slotIndex += item.volume; // 根據體積跳過格子
+                }
+            });
+            // [Muzen Update] 結束
         }
 
         function generatePDF() {
             if (currentState.remainingSlots > 0) {
-                if (!confirm(`您的盒子還能放 ${currentState.remainingSlots} 樣東西，確定要產出報價單嗎？`)) return;
+                if (!confirm(`餐盒尚未填滿 (還剩 ${currentState.remainingSlots} 格)，確定要產出報價單嗎？`)) return;
             }
-            alert('系統正在生成報價 PDF 並同步至木人艸後台，請點擊確認後開啟列印視窗。');
+            alert('模擬報價單產出成功！資訊已同步至 Database。');
             window.print();
         }
     </script>
