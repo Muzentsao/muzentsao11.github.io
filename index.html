@@ -303,10 +303,13 @@
             { id: 'S01', name: '法式經典鹹派', type: 'large', volume: 2, price: 65, color: 0xffcc00 },
             { id: 'S02', name: '德式香腸捲', type: 'large', volume: 2, price: 60, color: 0xcc6633 },
             { id: 'S03', name: '迷你燻雞三明治', type: 'large', volume: 2, price: 50, color: 0xffffcc },
+            { id: 'S08', name: '迷迭香雞腿排', type: 'large', volume: 2, price: 85, color: 0x8b4513 },
             { id: 'S04', name: '綜合花壽司', type: 'small', volume: 1, price: 20, color: 0xffffff },
             { id: 'S05', name: '全麥三明治', type: 'small', volume: 1, price: 40, color: 0xd2b48c },
             { id: 'D01', name: '洛神花瑪德蓮', type: 'small', volume: 1, price: 75, color: 0xff0066 },
-            { id: 'D05', name: '綜合水果', type: 'small', volume: 1, price: 50, color: 0x33cc33 }
+            { id: 'D02', name: '焦糖海鹽磅蛋糕', type: 'small', volume: 1, price: 55, color: 0xdaa520 },
+            { id: 'D05', name: '綜合水果', type: 'small', volume: 1, price: 50, color: 0x33cc33 },
+            { id: 'D07', name: '迷你烏龍生凍捲', type: 'small', volume: 1, price: 55, color: 0x006400 }
         ];
 
         const packages = [
@@ -318,16 +321,57 @@
             step: 1, boxId: '', boxName: '', maxSlots: 0, remainingSlots: 0, mode: '', selectedItems: [], currentZone: 'large'
         };
 
+        // 修復開始：5天工作天邏輯
+        function initDatePicker() {
+            const dateInput = document.getElementById('delivery-date');
+            if (!dateInput) return;
+
+            const calculateMinDate = (daysToAdd) => {
+                let date = new Date();
+                let added = 0;
+                while (added < daysToAdd) {
+                    date.setDate(date.getDate() + 1);
+                    if (date.getDay() !== 0 && date.getDay() !== 6) { // 排除週日(0)與週六(6)
+                        added++;
+                    }
+                }
+                return date.toISOString().split('T')[0];
+            };
+
+            const minDate = calculateMinDate(5);
+            dateInput.min = minDate;
+
+            // 實時檢查手動輸入
+            dateInput.addEventListener('change', (e) => {
+                const selected = new Date(e.target.value);
+                const min = new Date(minDate);
+                
+                // 檢查是否早於最小值或是週末
+                if (selected < min || selected.getDay() === 0 || selected.getDay() === 6) {
+                    alert('很抱歉，訂製餐盒需 5 個工作天前預訂（且週末不送餐），請選擇正確日期。');
+                    e.target.value = '';
+                }
+            });
+        }
+        initDatePicker();
+        // 修復結束：5天工作天邏輯
+
         function goToStep(step) {
             document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
             document.getElementById(`step-${step}`).classList.add('active');
             currentState.step = step;
-            if (step === 3) init3DBox(); // 進入 Step 3 時初始化 3D
+            if (step === 3) {
+                init3DBox();
+                renderItems('large');
+            }
         }
 
         function selectBox(id, name, avgPrice, slots) {
             currentState.boxId = id; currentState.boxName = name;
             currentState.maxSlots = slots; currentState.remainingSlots = slots;
+            document.querySelectorAll('.box-card').forEach(c => c.classList.remove('selected'));
+            const selectedCard = document.querySelector(`.box-card[onclick*="'${id}'"]`);
+            if (selectedCard) selectedCard.classList.add('selected');
             document.getElementById('mode-selection').classList.remove('hidden');
             updateUI();
         }
@@ -335,27 +379,48 @@
         function setOrderMode(mode) {
             currentState.mode = mode;
             goToStep(3);
-            renderItems('large');
         }
 
+        // 修改開始：自由選配空間彈性轉換邏輯
         function renderItems(zoneType) {
+            currentState.currentZone = zoneType;
             const grid = document.getElementById('items-grid');
+            const descEl = document.getElementById('zone-desc');
             grid.innerHTML = '';
+            
+            // 更新按鈕樣式
+            document.getElementById('btn-zone-large').className = zoneType === 'large' ? 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen-gold bg-muzen-gold text-white transition' : 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen text-muzen-stone hover:border-muzen-gold transition';
+            document.getElementById('btn-zone-small').className = zoneType === 'small' ? 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen-gold bg-muzen-gold text-white transition' : 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen text-muzen-stone hover:border-muzen-gold transition';
+
+            // 偵測大體積配額剩餘 (空間轉換提示)
+            const largeSelectedCount = currentState.selectedItems.filter(i => i.type === 'large').length;
+            const maxPossibleLarge = Math.floor(currentState.maxSlots / 2);
+            const remainingLargePotential = maxPossibleLarge - largeSelectedCount;
+
+            if (zoneType === 'small' && remainingLargePotential > 0) {
+                descEl.innerHTML = `<span class="capacity-tip px-2 py-1 rounded text-muzen-gold font-bold">★ 空間轉換：您未選滿主食，剩餘空間可多選 ${remainingLargePotential * 2} 樣點心。</span>`;
+            } else {
+                descEl.innerText = zoneType === 'large' ? "請挑選主食或飽足感單品" : "請選取搭配的小點心或水果";
+            }
+
             products.filter(p => p.type === zoneType).forEach(p => {
+                const canFit = currentState.remainingSlots >= p.volume;
                 const card = document.createElement('div');
-                card.className = "item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer";
-                card.innerHTML = `<div class="text-sm font-bold">${p.name}</div><div class="text-xs text-muzen-gold">$${p.price}</div>`;
+                card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${!canFit ? 'opacity-40 pointer-events-none' : ''}`;
+                card.innerHTML = `<div class="text-sm font-bold">${p.name}</div><div class="text-xs text-muzen-gold">$${p.price}</div><div class="text-[10px] text-gray-400 mt-1">體積: ${p.volume}</div>`;
                 card.onclick = () => toggleItem(p);
                 grid.appendChild(card);
             });
         }
+        // 修改結束：自由選配空間彈性轉換邏輯
 
         function toggleItem(item) {
             if (currentState.remainingSlots >= item.volume) {
                 currentState.selectedItems.push(item);
                 currentState.remainingSlots -= item.volume;
                 updateUI();
-            } else { alert("空間不足"); }
+                renderItems(currentState.currentZone); // 實時更新可選狀態
+            } else { alert("容量已滿！"); }
         }
 
         // --- 3D Scene Start ---
@@ -363,7 +428,11 @@
 
         function init3DBox() {
             const container = document.getElementById('visual-box-container');
-            if (renderer) return; // 避免重複初始化
+            if (renderer) {
+                // 如果已存在，調整大小以防回退上一步後容器寬度變化
+                renderer.setSize(container.offsetWidth, container.offsetHeight);
+                return; 
+            }
 
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 1000);
@@ -392,10 +461,11 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+            if (controls) controls.update();
+            if (renderer) renderer.render(scene, camera);
         }
 
+        // 修復開始：預覽區域優化與佈局自動切換
         function update3DModel() {
             if (!scene) return;
             if (currentBoxGroup) scene.remove(currentBoxGroup);
@@ -405,67 +475,77 @@
             currentBoxGroup.add(foodGroup);
 
             let boxSize = { w: 18, h: 6, d: 18 };
-            let mat = new THREE.MeshStandardMaterial({ color: 0xc4a484, roughness: 0.8 }); // 預設牛皮紙
+            let mat = new THREE.MeshStandardMaterial({ color: 0xc4a484, roughness: 0.8 }); 
 
             if (currentState.boxId === 'classic-6') {
                 boxSize = { w: 25, h: 6, d: 16 };
             } else if (currentState.boxId === 'marble-drawer') {
                 boxSize = { w: 16, h: 7, d: 9 };
-                mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); // 大理石
+                mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); 
             } else if (currentState.boxId === 'diamond') {
                 boxSize = { w: 22, h: 8, d: 15 };
             }
 
-            // 外殼
             const geometry = new THREE.BoxGeometry(boxSize.w, boxSize.h, boxSize.d);
             const boxBody = new THREE.Mesh(geometry, mat);
             boxBody.receiveShadow = true;
             currentBoxGroup.add(boxBody);
 
-            // 隔板邏輯
-            if (currentState.boxId === 'craft-4') {
-                createDivider(boxSize.w, boxSize.h, boxSize.d, 2, 2);
-            } else if (currentState.boxId === 'classic-6') {
-                createDivider(boxSize.w, boxSize.h, boxSize.d, 3, 2);
+            // 判定佈局模式：全小型模式 vs 混合佈局
+            const hasLarge = currentState.selectedItems.some(i => i.type === 'large');
+            
+            // 隔板邏輯：若為「全小件」模式，顯示更細密的隔板網格 (細分佈局)
+            if (!hasLarge && currentState.selectedItems.length > 0) {
+                // 全小件細分佈局
+                if (currentState.boxId === 'craft-4') createDivider(boxSize.w, boxSize.h, boxSize.d, 2, 2, true);
+                else if (currentState.boxId === 'classic-6') createDivider(boxSize.w, boxSize.h, boxSize.d, 3, 2, true);
+            } else {
+                // 預設混合佈局
+                if (currentState.boxId === 'craft-4') createDivider(boxSize.w, boxSize.h, boxSize.d, 2, 2, false);
+                else if (currentState.boxId === 'classic-6') createDivider(boxSize.w, boxSize.h, boxSize.d, 3, 2, false);
             }
 
-            // 加入當前選擇的食物
             let slotIdx = 0;
             currentState.selectedItems.forEach(item => {
-                addFood(item, slotIdx, boxSize);
+                addFood(item, slotIdx, boxSize, !hasLarge);
                 slotIdx += item.volume;
             });
 
             scene.add(currentBoxGroup);
         }
 
-        function createDivider(w, h, d, cols, rows) {
+        function createDivider(w, h, d, cols, rows, isFullSmall) {
             const divMat = new THREE.MeshStandardMaterial({ color: 0xbbbbbb, transparent: true, opacity: 0.5 });
-            for (let i = 1; i < cols; i++) {
+            // 如果是全小件模式，針對某些盒型增加視覺細分感
+            const visualCols = isFullSmall ? cols : cols; 
+            const visualRows = isFullSmall ? rows : rows;
+
+            for (let i = 1; i < visualCols; i++) {
                 const div = new THREE.Mesh(new THREE.BoxGeometry(0.2, h * 0.8, d), divMat);
-                div.position.x = -w/2 + (w/cols) * i;
+                div.position.x = -w/2 + (w/visualCols) * i;
                 currentBoxGroup.add(div);
             }
-            for (let j = 1; j < rows; j++) {
+            for (let j = 1; j < visualRows; j++) {
                 const div = new THREE.Mesh(new THREE.BoxGeometry(w, h * 0.8, 0.2), divMat);
-                div.position.z = -d/2 + (d/rows) * j;
+                div.position.z = -d/2 + (d/visualRows) * j;
                 currentBoxGroup.add(div);
             }
         }
 
-        function addFood(product, index, boxSize) {
+        function addFood(product, index, boxSize, isFullSmallMode) {
             const foodColor = product.color || 0xffaa00;
-            const foodGeom = product.type === 'large' ? new THREE.CylinderGeometry(2.5, 2.5, 2, 32) : new THREE.SphereGeometry(1.5, 32, 32);
+            // 全小件模式下，食物尺寸微調以填充空間
+            const radius = isFullSmallMode ? 1.8 : (product.type === 'large' ? 2.5 : 1.5);
+            const foodGeom = product.type === 'large' ? new THREE.CylinderGeometry(radius, radius, 2, 32) : new THREE.SphereGeometry(radius, 32, 32);
             const foodMat = new THREE.MeshStandardMaterial({ color: foodColor });
             const food = new THREE.Mesh(foodGeom, foodMat);
             food.castShadow = true;
 
-            // 吸附邏輯：根據 index 計算位置
             const cols = (currentState.boxId === 'classic-6') ? 3 : 2;
-            const rows = 2;
             const cellW = boxSize.w / cols;
-            const cellD = boxSize.d / rows;
+            const cellD = boxSize.d / 2;
             
+            // 計算吸附位置
             const ix = index % cols;
             const iz = Math.floor(index / cols);
 
@@ -477,29 +557,42 @@
 
             foodGroup.add(food);
         }
-
-        // 抽屜動畫函數預留
-        function animateDrawer(open = true) {
-            if (currentState.boxId === 'marble-drawer' && currentBoxGroup) {
-                const targetZ = open ? 5 : 0;
-                // 此處可接入 TWEEN.js 進行平滑動畫
-                foodGroup.position.z = targetZ; 
-            }
-        }
-        // --- 3D Scene End ---
+        // 修復結束：預覽區域優化與佈局自動切換
 
         function updateUI() {
             document.getElementById('slots-count').innerText = currentState.remainingSlots;
-            document.getElementById('items-subtotal').innerText = `$${currentState.selectedItems.reduce((s,i)=>s+i.price, 0) * 100}`;
-            update3DModel(); // 每次 UI 更新同步 3D 預覽
+            const subtotal = currentState.selectedItems.reduce((s,i)=>s+i.price, 0) * 100; // 假設一次訂100盒
+            document.getElementById('items-subtotal').innerText = `$${subtotal.toLocaleString()}`;
+            document.getElementById('grand-total').innerText = `$${(subtotal + 500).toLocaleString()}`; // 500 運費
+            document.getElementById('box-price').innerText = `$${currentState.selectedItems.reduce((s,i)=>s+i.price, 0)}`;
+            update3DModel(); 
         }
 
         function finalizeCurrentOrder() {
-            alert("已確認組合");
+            if (currentState.selectedItems.length === 0) return;
+            const newOrder = { boxId: currentState.boxId, boxName: currentState.boxName, items: [...currentState.selectedItems], subtotal: currentState.selectedItems.reduce((s, i) => s + i.price, 0) };
+            finalizedOrders.push(newOrder);
+            
+            const list = document.getElementById('finalized-list');
+            list.innerHTML = finalizedOrders.map((o, idx) => `
+                <div class="finalized-order-item shadow-sm">
+                    <div class="flex justify-between font-bold text-[11px] text-muzen-stone">
+                        <span>#${idx+1} ${o.boxName}</span>
+                        <span class="text-muzen-gold">$${o.subtotal}</span>
+                    </div>
+                </div>
+            `).join('');
+
             currentState.selectedItems = [];
             currentState.remainingSlots = currentState.maxSlots;
             updateUI();
+            renderItems('large');
+            alert("已確認此組合並加入清單！");
         }
+
+        function closeAddonModal() { document.getElementById('addon-modal').style.display = 'none'; }
+        function triggerAddonModal() { document.getElementById('addon-modal').style.display = 'flex'; }
+        function finalQuote() { window.print(); }
     </script>
 </body>
 </html>
