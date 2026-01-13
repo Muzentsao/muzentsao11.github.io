@@ -52,21 +52,51 @@
         .remove-order-btn:hover { color: #ff4d4f; }
         /* --- Non-destructive Selection Logic End --- */
 
-        /* 修改開始：彈性分區提示與佈局樣式 */
         .capacity-tip { animation: slideIn 0.3s ease-out; background: #fdfaf7; border-left: 4px solid #b0916a; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
         
+        /* 修改開始：3D 盒體深度視覺與移除按鈕樣式 */
         #visual-box-container { 
             position: relative;
             min-height: 400px; 
-            background: radial-gradient(circle, #ffffff 0%, #f3f3f3 100%);
+            background: radial-gradient(circle, #ffffff 0%, #eeeeee 100%);
             border-radius: 24px;
             overflow: hidden;
+            /* 模擬容器深度感 */
+            box-shadow: inset 0 10px 30px rgba(0,0,0,0.05), 0 20px 40px rgba(0,0,0,0.1);
+            border: 8px solid #fff;
         }
-        .grid-cols-flex { display: grid; gap: 0.75rem; }
-        .slot-large { grid-column: span 2; aspect-ratio: 2 / 1; }
-        .slot-small { grid-column: span 1; aspect-ratio: 1 / 1; }
-        /* 修改結束：彈性分區提示與佈局樣式 */
+
+        .item-remove-overlay {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 77, 79, 0.9);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .item-card.selected:hover .item-remove-overlay {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .item-card.selected {
+            background-color: #fdfaf7;
+            box-shadow: 0 4px 12px rgba(176, 145, 106, 0.15);
+        }
+        /* 修改結束：3D 盒體深度視覺與移除按鈕樣式 */
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -312,41 +342,28 @@
             { id: 'D07', name: '迷你烏龍生凍捲', type: 'small', volume: 1, price: 55, color: 0x006400 }
         ];
 
-        const packages = [
-            { id: 'P01', name: '春暖花開組合', box: 'craft-4', items: ['D01', 'S04', 'S05', 'S01'] }
-        ];
-
         let finalizedOrders = [];
         let currentState = {
             step: 1, boxId: '', boxName: '', maxSlots: 0, remainingSlots: 0, mode: '', selectedItems: [], currentZone: 'large'
         };
 
-        // 修復開始：5天工作天邏輯
         function initDatePicker() {
             const dateInput = document.getElementById('delivery-date');
             if (!dateInput) return;
-
             const calculateMinDate = (daysToAdd) => {
                 let date = new Date();
                 let added = 0;
                 while (added < daysToAdd) {
                     date.setDate(date.getDate() + 1);
-                    if (date.getDay() !== 0 && date.getDay() !== 6) { // 排除週日(0)與週六(6)
-                        added++;
-                    }
+                    if (date.getDay() !== 0 && date.getDay() !== 6) { added++; }
                 }
                 return date.toISOString().split('T')[0];
             };
-
             const minDate = calculateMinDate(5);
             dateInput.min = minDate;
-
-            // 實時檢查手動輸入
             dateInput.addEventListener('change', (e) => {
                 const selected = new Date(e.target.value);
                 const min = new Date(minDate);
-                
-                // 檢查是否早於最小值或是週末
                 if (selected < min || selected.getDay() === 0 || selected.getDay() === 6) {
                     alert('很抱歉，訂製餐盒需 5 個工作天前預訂（且週末不送餐），請選擇正確日期。');
                     e.target.value = '';
@@ -354,7 +371,6 @@
             });
         }
         initDatePicker();
-        // 修復結束：5天工作天邏輯
 
         function goToStep(step) {
             document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
@@ -381,18 +397,15 @@
             goToStep(3);
         }
 
-        // 修改開始：自由選配空間彈性轉換邏輯
         function renderItems(zoneType) {
             currentState.currentZone = zoneType;
             const grid = document.getElementById('items-grid');
             const descEl = document.getElementById('zone-desc');
             grid.innerHTML = '';
             
-            // 更新按鈕樣式
             document.getElementById('btn-zone-large').className = zoneType === 'large' ? 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen-gold bg-muzen-gold text-white transition' : 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen text-muzen-stone hover:border-muzen-gold transition';
             document.getElementById('btn-zone-small').className = zoneType === 'small' ? 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen-gold bg-muzen-gold text-white transition' : 'px-4 py-2 rounded-full text-xs font-bold border-2 border-muzen text-muzen-stone hover:border-muzen-gold transition';
 
-            // 偵測大體積配額剩餘 (空間轉換提示)
             const largeSelectedCount = currentState.selectedItems.filter(i => i.type === 'large').length;
             const maxPossibleLarge = Math.floor(currentState.maxSlots / 2);
             const remainingLargePotential = maxPossibleLarge - largeSelectedCount;
@@ -404,57 +417,70 @@
             }
 
             products.filter(p => p.type === zoneType).forEach(p => {
+                const isSelected = currentState.selectedItems.find(item => item.id === p.id);
                 const canFit = currentState.remainingSlots >= p.volume;
                 const card = document.createElement('div');
-                card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${!canFit ? 'opacity-40 pointer-events-none' : ''}`;
-                card.innerHTML = `<div class="text-sm font-bold">${p.name}</div><div class="text-xs text-muzen-gold">$${p.price}</div><div class="text-[10px] text-gray-400 mt-1">體積: ${p.volume}</div>`;
-                card.onclick = () => toggleItem(p);
+                
+                /* 修改開始：品項卡片增加移除按鈕邏輯 */
+                card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelected ? 'selected' : ''} ${(!canFit && !isSelected) ? 'opacity-40 pointer-events-none' : ''}`;
+                
+                let removeBtnHtml = isSelected ? `<div class="item-remove-overlay" onclick="event.stopPropagation(); removeItem('${p.id}')">✕</div>` : '';
+                
+                card.innerHTML = `
+                    ${removeBtnHtml}
+                    <div class="text-sm font-bold">${p.name}</div>
+                    <div class="text-xs text-muzen-gold">$${p.price}</div>
+                    <div class="text-[10px] text-gray-400 mt-1">體積: ${p.volume}</div>
+                `;
+                card.onclick = () => isSelected ? removeItem(p.id) : toggleItem(p);
+                /* 修改結束：品項卡片增加移除按鈕邏輯 */
                 grid.appendChild(card);
             });
         }
-        // 修改結束：自由選配空間彈性轉換邏輯
 
         function toggleItem(item) {
             if (currentState.remainingSlots >= item.volume) {
                 currentState.selectedItems.push(item);
                 currentState.remainingSlots -= item.volume;
                 updateUI();
-                renderItems(currentState.currentZone); // 實時更新可選狀態
+                renderItems(currentState.currentZone);
             } else { alert("容量已滿！"); }
         }
 
-        // --- 3D Scene Start ---
+        /* 修改開始：取消選購功能（移除品項） */
+        function removeItem(productId) {
+            const index = currentState.selectedItems.findIndex(i => i.id === productId);
+            if (index > -1) {
+                const item = currentState.selectedItems[index];
+                currentState.remainingSlots += item.volume;
+                currentState.selectedItems.splice(index, 1);
+                updateUI();
+                renderItems(currentState.currentZone);
+            }
+        }
+        /* 修改結束：取消選購功能（移除品項） */
+
+        // --- 3D Scene ---
         let scene, camera, renderer, controls, currentBoxGroup, foodGroup;
 
         function init3DBox() {
             const container = document.getElementById('visual-box-container');
-            if (renderer) {
-                // 如果已存在，調整大小以防回退上一步後容器寬度變化
-                renderer.setSize(container.offsetWidth, container.offsetHeight);
-                return; 
-            }
-
+            if (renderer) { renderer.setSize(container.offsetWidth, container.offsetHeight); return; }
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(45, container.offsetWidth / container.offsetHeight, 0.1, 1000);
             camera.position.set(25, 25, 25);
-
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(container.offsetWidth, container.offsetHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
-
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
             const directLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directLight.position.set(10, 20, 10);
             directLight.castShadow = true;
             scene.add(directLight);
-
             animate();
             update3DModel();
         }
@@ -465,106 +491,120 @@
             if (renderer) renderer.render(scene, camera);
         }
 
-        // 修復開始：預覽區域優化與佈局自動切換
         function update3DModel() {
             if (!scene) return;
             if (currentBoxGroup) scene.remove(currentBoxGroup);
-            
             currentBoxGroup = new THREE.Group();
             foodGroup = new THREE.Group();
             currentBoxGroup.add(foodGroup);
 
             let boxSize = { w: 18, h: 6, d: 18 };
-            let mat = new THREE.MeshStandardMaterial({ color: 0xc4a484, roughness: 0.8 }); 
+            let boxColor = 0xc4a484; // 預設牛皮色
 
-            if (currentState.boxId === 'classic-6') {
-                boxSize = { w: 25, h: 6, d: 16 };
-            } else if (currentState.boxId === 'marble-drawer') {
-                boxSize = { w: 16, h: 7, d: 9 };
-                mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }); 
-            } else if (currentState.boxId === 'diamond') {
-                boxSize = { w: 22, h: 8, d: 15 };
-            }
+            if (currentState.boxId === 'classic-6') { boxSize = { w: 25, h: 6, d: 16 }; }
+            else if (currentState.boxId === 'marble-drawer') { boxSize = { w: 16, h: 7, d: 9 }; boxColor = 0xffffff; }
+            else if (currentState.boxId === 'diamond') { boxSize = { w: 22, h: 8, d: 15 }; }
 
-            const geometry = new THREE.BoxGeometry(boxSize.w, boxSize.h, boxSize.d);
-            const boxBody = new THREE.Mesh(geometry, mat);
+            /* 修改開始：3D 隔板設計優化 */
+            // 建立盒體（帶內嵌感）
+            const boxGeom = new THREE.BoxGeometry(boxSize.w, boxSize.h, boxSize.d);
+            const boxMat = new THREE.MeshStandardMaterial({ 
+                color: boxColor, 
+                roughness: 0.8,
+                side: THREE.BackSide // 讓內部也能渲染
+            });
+            const boxBody = new THREE.Mesh(boxGeom, boxMat);
             boxBody.receiveShadow = true;
             currentBoxGroup.add(boxBody);
 
-            // 判定佈局模式：全小型模式 vs 混合佈局
+            // 實體隔板邏輯
             const hasLarge = currentState.selectedItems.some(i => i.type === 'large');
-            
-            // 隔板邏輯：若為「全小件」模式，顯示更細密的隔板網格 (細分佈局)
-            if (!hasLarge && currentState.selectedItems.length > 0) {
-                // 全小件細分佈局
-                if (currentState.boxId === 'craft-4') createDivider(boxSize.w, boxSize.h, boxSize.d, 2, 2, true);
-                else if (currentState.boxId === 'classic-6') createDivider(boxSize.w, boxSize.h, boxSize.d, 3, 2, true);
-            } else {
-                // 預設混合佈局
-                if (currentState.boxId === 'craft-4') createDivider(boxSize.w, boxSize.h, boxSize.d, 2, 2, false);
-                else if (currentState.boxId === 'classic-6') createDivider(boxSize.w, boxSize.h, boxSize.d, 3, 2, false);
+            const isFullSmall = !hasLarge && currentState.selectedItems.length > 0;
+
+            if (currentState.boxId === 'craft-4' || currentState.boxId === 'classic-6') {
+                const cols = (currentState.boxId === 'classic-6') ? 3 : 2;
+                create3DDivider(boxSize.w, boxSize.h, boxSize.d, cols, 2, boxColor);
             }
 
             let slotIdx = 0;
             currentState.selectedItems.forEach(item => {
-                addFood(item, slotIdx, boxSize, !hasLarge);
+                addFood(item, slotIdx, boxSize, isFullSmall);
                 slotIdx += item.volume;
             });
+            /* 修改結束：3D 隔板設計優化 */
 
             scene.add(currentBoxGroup);
         }
 
-        function createDivider(w, h, d, cols, rows, isFullSmall) {
-            const divMat = new THREE.MeshStandardMaterial({ color: 0xbbbbbb, transparent: true, opacity: 0.5 });
-            // 如果是全小件模式，針對某些盒型增加視覺細分感
-            const visualCols = isFullSmall ? cols : cols; 
-            const visualRows = isFullSmall ? rows : rows;
+        /* 修改開始：建立實體質感隔板 */
+        function create3DDivider(w, h, d, cols, rows, color) {
+            const divMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9, metalness: 0 });
+            const divThickness = 0.3;
+            const divHeight = h * 0.7; // 隔板略矮於盒緣
 
-            for (let i = 1; i < visualCols; i++) {
-                const div = new THREE.Mesh(new THREE.BoxGeometry(0.2, h * 0.8, d), divMat);
-                div.position.x = -w/2 + (w/visualCols) * i;
+            // 垂直隔板
+            for (let i = 1; i < cols; i++) {
+                const div = new THREE.Mesh(new THREE.BoxGeometry(divThickness, divHeight, d - 0.2), divMat);
+                div.position.set(-w/2 + (w/cols) * i, -h/2 + divHeight/2, 0);
+                div.castShadow = true;
                 currentBoxGroup.add(div);
             }
-            for (let j = 1; j < visualRows; j++) {
-                const div = new THREE.Mesh(new THREE.BoxGeometry(w, h * 0.8, 0.2), divMat);
-                div.position.z = -d/2 + (d/visualRows) * j;
+            // 水平隔板
+            for (let j = 1; j < rows; j++) {
+                const div = new THREE.Mesh(new THREE.BoxGeometry(w - 0.2, divHeight, divThickness), divMat);
+                div.position.set(0, -h/2 + divHeight/2, -d/2 + (d/rows) * j);
+                div.castShadow = true;
                 currentBoxGroup.add(div);
             }
         }
+        /* 修改結束：建立實體質感隔板 */
 
         function addFood(product, index, boxSize, isFullSmallMode) {
             const foodColor = product.color || 0xffaa00;
-            // 全小件模式下，食物尺寸微調以填充空間
             const radius = isFullSmallMode ? 1.8 : (product.type === 'large' ? 2.5 : 1.5);
-            const foodGeom = product.type === 'large' ? new THREE.CylinderGeometry(radius, radius, 2, 32) : new THREE.SphereGeometry(radius, 32, 32);
-            const foodMat = new THREE.MeshStandardMaterial({ color: foodColor });
+            const foodHeight = 2.5;
+            const foodGeom = product.type === 'large' ? new THREE.CylinderGeometry(radius, radius, foodHeight, 32) : new THREE.SphereGeometry(radius, 32, 32);
+            const foodMat = new THREE.MeshStandardMaterial({ color: foodColor, roughness: 0.4 });
             const food = new THREE.Mesh(foodGeom, foodMat);
             food.castShadow = true;
 
             const cols = (currentState.boxId === 'classic-6') ? 3 : 2;
             const cellW = boxSize.w / cols;
             const cellD = boxSize.d / 2;
-            
-            // 計算吸附位置
             const ix = index % cols;
             const iz = Math.floor(index / cols);
 
+            /* 修改開始：確保食物「放置於格位底部」 */
             food.position.set(
                 -boxSize.w/2 + cellW/2 + ix * cellW,
-                boxSize.h/2 - 1,
+                -boxSize.h/2 + (product.type === 'large' ? foodHeight/2 : radius), 
                 -boxSize.d/2 + cellD/2 + iz * cellD
             );
+            /* 修改結束：確保食物「放置於格位底部」 */
 
             foodGroup.add(food);
         }
-        // 修復結束：預覽區域優化與佈局自動切換
 
         function updateUI() {
             document.getElementById('slots-count').innerText = currentState.remainingSlots;
-            const subtotal = currentState.selectedItems.reduce((s,i)=>s+i.price, 0) * 100; // 假設一次訂100盒
+            const subtotal = currentState.selectedItems.reduce((s,i)=>s+i.price, 0) * 100;
             document.getElementById('items-subtotal').innerText = `$${subtotal.toLocaleString()}`;
-            document.getElementById('grand-total').innerText = `$${(subtotal + 500).toLocaleString()}`; // 500 運費
+            document.getElementById('grand-total').innerText = `$${(subtotal + 500).toLocaleString()}`;
             document.getElementById('box-price').innerText = `$${currentState.selectedItems.reduce((s,i)=>s+i.price, 0)}`;
+            
+            // 更新暫存列表
+            const cartList = document.getElementById('cart-list');
+            cartList.innerHTML = currentState.selectedItems.map(item => `
+                <div class="flex justify-between items-center text-sm py-1 border-b border-stone-100 group">
+                    <span class="font-medium">${item.name}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono text-muzen-gold">$${item.price}</span>
+                        <button onclick="removeItem('${item.id}')" class="text-red-400 opacity-0 group-hover:opacity-100 transition">✕</button>
+                    </div>
+                </div>
+            `).join('');
+            if (currentState.selectedItems.length === 0) cartList.innerHTML = '<p class="text-gray-300 text-sm italic">尚未選擇品項...</p>';
+
             update3DModel(); 
         }
 
@@ -572,17 +612,8 @@
             if (currentState.selectedItems.length === 0) return;
             const newOrder = { boxId: currentState.boxId, boxName: currentState.boxName, items: [...currentState.selectedItems], subtotal: currentState.selectedItems.reduce((s, i) => s + i.price, 0) };
             finalizedOrders.push(newOrder);
-            
             const list = document.getElementById('finalized-list');
-            list.innerHTML = finalizedOrders.map((o, idx) => `
-                <div class="finalized-order-item shadow-sm">
-                    <div class="flex justify-between font-bold text-[11px] text-muzen-stone">
-                        <span>#${idx+1} ${o.boxName}</span>
-                        <span class="text-muzen-gold">$${o.subtotal}</span>
-                    </div>
-                </div>
-            `).join('');
-
+            list.innerHTML = finalizedOrders.map((o, idx) => `<div class="finalized-order-item shadow-sm"><span class="remove-order-btn" onclick="finalizedOrders.splice(${idx},1); updateUI();">✕ 移除</span><div class="flex justify-between font-bold text-[11px] text-muzen-stone"><span>#${idx+1} ${o.boxName}</span><span class="text-muzen-gold">$${o.subtotal}</span></div></div>`).join('');
             currentState.selectedItems = [];
             currentState.remainingSlots = currentState.maxSlots;
             updateUI();
