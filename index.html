@@ -50,14 +50,14 @@
 
     <nav class="bg-white border-b sticky top-0 z-50 no-print">
         <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="font-bold text-xl tracking-tighter">木人艸 <span class="text-xs font-light text-gray-400 ml-2">QUOTATION SYSTEM</span></div>
+            <div class="font-bold text-xl tracking-tighter text-muzen-stone">木人艸 <span class="text-xs font-light text-gray-400 ml-2 uppercase">Quotation System</span></div>
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                    <div class="progress-dot active w-3 h-3 rounded-full bg-gray-200" id="dot-1"></div>
-                    <div class="progress-dot w-3 h-3 rounded-full bg-gray-200" id="dot-2"></div>
-                    <div class="progress-dot w-3 h-3 rounded-full bg-gray-200" id="dot-3"></div>
+                    <div class="progress-dot active w-3 h-3 rounded-full bg-gray-200 transition-all duration-300" id="dot-1"></div>
+                    <div class="progress-dot w-3 h-3 rounded-full bg-gray-200 transition-all duration-300" id="dot-2"></div>
+                    <div class="progress-dot w-3 h-3 rounded-full bg-gray-200 transition-all duration-300" id="dot-3"></div>
                 </div>
-                <span class="text-sm font-medium text-gray-500" id="step-label">基本資訊</span>
+                <span class="text-sm font-medium text-gray-500 min-w-[70px] text-right" id="step-label">基本資訊</span>
             </div>
         </div>
     </nav>
@@ -94,11 +94,14 @@
                     <button onclick="goToStep(2)" class="bg-[#333] text-white px-10 py-4 rounded-full font-bold hover:bg-black transition shadow-lg flex items-center gap-2">
                         下一步：選擇盒型與預算 <span>→</span>
                     </button>
-                </div>
+                    </div>
             </div>
         </div>
 
         <div id="step-2" class="step-container">
+            <button onclick="goToStep(1)" class="mb-6 text-gray-400 hover:text-muzen-gold flex items-center gap-1 text-sm font-bold transition">
+                <span>←</span> 返回修改客戶資訊
+            </button>
             <div class="mb-8 text-center">
                 <h2 class="text-2xl font-bold mb-2">選擇適合您的盒型</h2>
                 <p class="text-gray-500 text-sm">點擊盒型即可查看對應的組合建議</p>
@@ -147,7 +150,7 @@
                     <div class="flex-1 bg-white border border-muzen p-8 rounded-3xl hover:border-[#b0916a] cursor-pointer transition" onclick="setOrderMode('package')">
                         <div class="flex justify-between items-start mb-4">
                             <h4 class="text-xl font-bold">固定套餐 (Set Menu)</h4>
-                            <span class="bg-gray-100 text-[10px] px-2 py-1 rounded">FAST & EASY</span>
+                            <span class="bg-gray-100 text-[10px] px-2 py-1 rounded uppercase">Fast & Easy</span>
                         </div>
                         <p class="text-gray-500 text-sm mb-6">由主廚根據時令食材搭配最完美的鹹甜比例，適合追求效率的您。</p>
                         <button class="w-full py-3 border-2 border-stone-800 rounded-full font-bold">查看主廚推薦組合</button>
@@ -156,17 +159,19 @@
                     <div class="flex-1 bg-stone-800 text-white p-8 rounded-3xl hover:bg-stone-900 cursor-pointer transition" onclick="setOrderMode('diy')">
                         <div class="flex justify-between items-start mb-4">
                             <h4 class="text-xl font-bold">自由配 (DIY Journey)</h4>
-                            <span class="bg-[#b0916a] text-[10px] px-2 py-1 rounded">SMART ZONING</span>
+                            <span class="bg-[#b0916a] text-[10px] px-2 py-1 rounded uppercase">Smart Zoning</span>
                         </div>
                         <p class="text-stone-400 text-sm mb-6">透過智慧分區引導，自行挑選喜愛的品項，確保體積完美契合。</p>
                         <button class="w-full py-3 bg-[#b0916a] rounded-full font-bold">開始自由搭配</button>
                     </div>
                 </div>
-                <button onclick="goToStep(1)" class="text-gray-400 text-sm underline w-full text-center">返回修改資訊</button>
             </div>
         </div>
 
         <div id="step-3" class="step-container">
+            <button onclick="goToStep(2)" class="mb-6 text-gray-400 hover:text-muzen-gold flex items-center gap-1 text-sm font-bold transition">
+                <span>←</span> 返回更換盒型與預算
+            </button>
             <div class="flex flex-col lg:flex-row gap-8">
                 <div class="flex-grow space-y-8">
                     <div class="bg-white p-6 rounded-2xl border border-muzen">
@@ -194,7 +199,7 @@
 
                 <div class="w-full lg:w-80">
                     <div class="bg-white p-6 rounded-2xl border border-muzen sticky top-24">
-                        <h3 class="font-bold border-b pb-4 mb-4">我的餐盒內容</h3>
+                        <h3 class="font-bold border-b pb-4 mb-4 uppercase tracking-tighter">我的餐盒內容</h3>
                         <div id="cart-list" class="space-y-3 mb-6 min-h-[100px]">
                             <p class="text-gray-300 text-sm italic">尚未選擇品項...</p>
                         </div>
@@ -203,7 +208,7 @@
                             <div class="flex justify-between text-xs text-gray-400"><span>盒數：</span><span>100 盒</span></div>
                             <div class="flex justify-between text-xl font-bold border-t pt-2 text-red-700"><span>總計</span><span id="grand-total">$0</span></div>
                         </div>
-                        <button onclick="generatePDF()" class="w-full bg-stone-800 text-white py-4 rounded-xl mt-6 font-bold hover:bg-black transition">
+                        <button onclick="generatePDF()" class="w-full bg-stone-800 text-white py-4 rounded-xl mt-6 font-bold hover:bg-black transition shadow-lg">
                             產出模擬報價單
                         </button>
                     </div>
@@ -225,6 +230,7 @@
             { id: 'D04', name: '可麗露', type: 'small', volume: 1, price: 60, img: 'https://via.placeholder.com/150?text=Canelé' }
         ];
 
+        // 修改開始：切換邏輯
         let currentState = {
             step: 1,
             boxId: '',
@@ -238,28 +244,31 @@
         };
 
         function goToStep(step) {
-            // [Muzen Update] 強化 Step 1 的首屏攔截驗證
-            if (step === 2) {
-                const company = document.getElementById('company-name').value.trim();
-                const tax = document.getElementById('tax-id').value.trim();
-                const phone = document.getElementById('contact-phone').value.trim();
-                const name = document.getElementById('contact-name').value.trim();
+            // [Muzen Update] 強化 Step 1 的欄位必填檢查與統編格式檢查
+            if (step > currentState.step) {
+                if (currentState.step === 1) {
+                    const company = document.getElementById('company-name').value.trim();
+                    const tax = document.getElementById('tax-id').value.trim();
+                    const phone = document.getElementById('contact-phone').value.trim();
+                    const name = document.getElementById('contact-name').value.trim();
 
-                if (!company || !tax || !phone || !name) {
-                    alert('請完整填寫公司資訊、統編與聯繫電話以繼續報價。');
-                    return;
-                }
-                if (tax.length !== 8) {
-                    alert('統一編號格式錯誤，應為 8 碼數字。');
-                    return;
+                    if (!company || !tax || !phone || !name) {
+                        alert('為了提供正式報價單，請完整填寫必填欄位 (*)');
+                        return;
+                    }
+                    if (tax.length !== 8 || isNaN(tax)) {
+                        alert('統一編號應為 8 碼數字，請重新檢查。');
+                        return;
+                    }
                 }
             }
             // [Muzen Update] 結束
 
+            // 修改開始：狀態管理與動畫控制
             document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
             document.getElementById(`step-${step}`).classList.add('active');
             
-            // 進度條控制
+            // 進度條與標籤同步
             document.querySelectorAll('.progress-dot').forEach((dot, idx) => {
                 if (idx < step) dot.classList.add('active');
                 else dot.classList.remove('active');
@@ -268,10 +277,23 @@
             const labels = ["基本資訊", "選擇盒型", "搭配餐點"];
             document.getElementById('step-label').innerText = labels[step-1];
             currentState.step = step;
+            
+            // 平滑滾動至頂部
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function selectBox(id, name, avgPrice, slots) {
+            // [Muzen Update] 狀態同步：若更換盒型，自動清空原先選好的 DIY 品項，防止容量邏輯衝突
+            if (currentState.boxId !== '' && currentState.boxId !== id && currentState.selectedItems.length > 0) {
+                if (confirm('更改盒型將會清空目前已選取的點心，確定要更改嗎？')) {
+                    currentState.selectedItems = [];
+                    currentState.currentZone = 'large';
+                    updateUI();
+                } else {
+                    return; // 使用者取消更換
+                }
+            }
+
             currentState.boxId = id;
             currentState.boxName = name;
             currentState.maxSlots = slots;
@@ -294,9 +316,8 @@
                 slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
                 visualBox.appendChild(slot);
             }
-            // [Muzen Update] 結束
 
-            // 平滑滾動到模式選擇
+            // 平滑滾動到模式選擇區塊
             document.getElementById('mode-selection').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -307,6 +328,7 @@
                 goToStep(3);
             } else {
                 alert('固定套餐正在為您加載主廚精選圖庫...');
+                // 此處可擴充固定套餐邏輯
             }
         }
 
@@ -339,10 +361,9 @@
                     grid.appendChild(card);
                 }
             });
-            // [Muzen Update] 結束
 
             document.getElementById('zone-title').innerText = zoneType === 'large' ? 'Zone 1: 大體積品項' : 'Zone 2: 點綴品項';
-            document.getElementById('zone-desc').innerText = zoneType === 'large' ? '請先挑選主食類點心 (佔2格)' : '請填滿剩餘的格子空間 (佔1格)';
+            document.getElementById('zone-desc').innerText = zoneType === 'large' ? '請先挑選主食類點心 (佔 2 格)' : '請填滿剩餘的格子空間 (佔 1 格)';
         }
 
         function toggleItem(item) {
@@ -366,13 +387,12 @@
                 currentState.currentZone = 'small';
                 setTimeout(() => renderItems('small'), 300);
             } else if (currentState.currentZone === 'small' && currentState.selectedItems.filter(i => i.type === 'large').length === 0) {
-                 // 如果大體積都被取消了，切回 Zone 1
+                 // 若大體積品項被清空，自動切回 Zone 1
                  currentState.currentZone = 'large';
                  renderItems('large');
             } else {
                 renderItems(currentState.currentZone);
             }
-            // [Muzen Update] 結束
 
             updateUI();
         }
@@ -392,29 +412,25 @@
                 `).join('');
             }
 
-            // [Muzen Update] 動態總金額計算
+            // 動態金額計算
             const subtotal = currentState.selectedItems.reduce((sum, i) => sum + i.price, 0);
             document.getElementById('box-price').innerText = `$${subtotal}`;
             document.getElementById('grand-total').innerText = `$${(subtotal * 100).toLocaleString()}`;
-            // [Muzen Update] 結束
 
-            // [Muzen Update] 視覺聯動：AI 合成入盒視覺效果
-            // 先清空所有格子
+            // 視覺模擬連動
             for(let i=0; i<currentState.maxSlots; i++) {
                 const slot = document.getElementById(`visual-slot-${i}`);
                 if (slot) slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
             }
 
-            // 填充選取的圖片，大型品項佔據多格邏輯示意
             let slotIndex = 0;
             currentState.selectedItems.forEach(item => {
                 const slot = document.getElementById(`visual-slot-${slotIndex}`);
                 if (slot) {
                     slot.innerHTML = `<img src="${item.img}" title="${item.name}">`;
-                    slotIndex += item.volume; // 根據體積跳過格子
+                    slotIndex += item.volume; 
                 }
             });
-            // [Muzen Update] 結束
         }
 
         function generatePDF() {
@@ -424,6 +440,7 @@
             alert('模擬報價單產出成功！資訊已同步至 Database。');
             window.print();
         }
+        // 修改結束：切換邏輯
     </script>
 </body>
 </html>
