@@ -246,6 +246,9 @@
 
                         <div class="border-t pt-4 space-y-2 text-muzen-stone">
                             <div class="flex justify-between text-xs"><span>餐點品項小計</span><span id="items-subtotal">$0</span></div>
+                            <div class="flex justify-between text-[10px] text-gray-400">
+                                <span>當前盒型單價：</span><span id="box-price">$0</span>
+                            </div>
                             <div id="packaging-fee-row" class="flex justify-between text-xs text-blue-500 hidden">
                                 <span>包材費 ($5 x 4格盒數)：</span><span id="packaging-fee-total">$0</span>
                             </div>
@@ -282,10 +285,17 @@
 
     <script>
         /* --- Business Logic & Pricing System Start --- */
+        
+        /* << DATA_OBJECT_ADDITION_START >> */
+        // 擴充品項資料庫，包含體積權重與照片
         const products = [
+            // 大體積 (Large, Volume: 2)
             { id: 'S01', name: '法式經典鹹派', type: 'large', volume: 2, price: 65, img: 'https://via.placeholder.com/150?text=Quiche' },
             { id: 'S02', name: '德式香腸捲', type: 'large', volume: 2, price: 60, img: 'https://via.placeholder.com/150?text=Sausage+Roll' },
             { id: 'S03', name: '迷你燻雞三明治', type: 'large', volume: 2, price: 50, img: 'https://via.placeholder.com/150?text=Chicken' },
+            { id: 'S08', name: '迷迭香雞腿排', type: 'large', volume: 2, price: 85, img: 'https://via.placeholder.com/150?text=Chicken+Thigh' },
+            
+            // 小體積 (Small, Volume: 1)
             { id: 'S04', name: '綜合花壽司', type: 'small', volume: 1, price: 20, img: 'https://via.placeholder.com/150?text=Sushi' },
             { id: 'S05', name: '全麥三明治', type: 'small', volume: 1, price: 40, img: 'https://via.placeholder.com/150?text=Wheat' },
             { id: 'D01', name: '洛神花瑪德蓮', type: 'small', volume: 1, price: 75, img: 'https://via.placeholder.com/150?text=Madeleine' },
@@ -294,24 +304,32 @@
             { id: 'D04', name: '繽紛馬卡龍', type: 'small', volume: 1, price: 30, img: 'https://via.placeholder.com/150?text=Macaron' },
             { id: 'D05', name: '綜合水果', type: 'small', volume: 1, price: 50, img: 'https://via.placeholder.com/150?text=Fruit' },
             { id: 'D06', name: '千層菠菜蚌', type: 'small', volume: 1, price: 50, img: 'https://via.placeholder.com/150?text=Spinach' },
-            { id: 'D07', name: '迷你烏龍茶生凍捲', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=Roll' }
+            { id: 'D07', name: '迷你烏龍茶生凍捲', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=Roll' },
+            { id: 'D08', name: '法式鹽花可頌', type: 'small', volume: 1, price: 45, img: 'https://via.placeholder.com/150?text=Croissant' }
         ];
 
+        // 擴充組合建議 (Set Menu)
         const packages = [
-            { id: 'P01', name: '均衡型建議 (兩鹹兩甜)', box: 'craft-4', price: 200, items: ['D01', 'D02', 'S04', 'S05'], desc: '瑪德蓮+磅蛋糕+壽司+三明治' },
-            { id: 'P02', name: '甜點型建議 (四甜)', box: 'craft-4', price: 200, items: ['D03', 'D01', 'D05', 'D04'], desc: '月燒+瑪德蓮+水果+馬卡龍' },
-            { id: 'P03', name: '豐富型建議 (三鹹三甜)', box: 'classic-6', price: 300, items: ['S04', 'S05', 'D06', 'D04', 'D03', 'D07'], desc: '壽司+三明治+菠菜蚌+馬卡龍+月燒+生凍捲' }
+            // 四格盒建議
+            { id: 'P01', name: '春暖花開組合 (兩鹹兩甜)', box: 'craft-4', price: 210, items: ['D01', 'D02', 'S04', 'S05'], desc: '洛神瑪德蓮+磅蛋糕+花壽司+全麥三明治', preview: 'https://via.placeholder.com/600x400?text=Spring+Bloom+Set' },
+            { id: 'P02', name: '經典午茶建議 (四甜)', box: 'craft-4', price: 190, items: ['D03', 'D01', 'D05', 'D04'], desc: '月燒+瑪德蓮+綜合水果+馬卡龍', preview: 'https://via.placeholder.com/600x400?text=Classic+Tea+Set' },
+            
+            // 六格盒建議
+            { id: 'P03', name: '豪華盛宴建議 (三鹹三甜)', box: 'classic-6', price: 320, items: ['S04', 'S05', 'D06', 'D04', 'D03', 'D07'], desc: '壽司+三明治+菠菜蚌+馬卡龍+月燒+生凍捲', preview: 'https://via.placeholder.com/600x400?text=Grand+Feast+Set' },
+            { id: 'P04', name: '商務精英組 (主食強化)', box: 'classic-6', price: 350, items: ['S08', 'S01', 'D08', 'D05'], desc: '雞腿排(2)+鹹派(2)+鹽花可頌(1)+水果(1)', preview: 'https://via.placeholder.com/600x400?text=Business+Choice' }
         ];
+        /* << DATA_OBJECT_ADDITION_END >> */
 
         let finalizedOrders = [];
 
         let currentState = {
-            step: 1, boxId: '', boxName: '', maxSlots: 0, remainingSlots: 0, mode: '', selectedItems: [], currentZone: 'large'
+            step: 1, boxId: '', boxName: '', maxSlots: 0, remainingSlots: 0, mode: '', selectedItems: [], currentZone: 'large', packagePreview: null
         };
 
         const initDatePicker = () => {
             const today = new Date(); today.setDate(today.getDate() + 7);
-            document.getElementById('delivery-date').min = today.toISOString().split('T')[0];
+            const dateInput = document.getElementById('delivery-date');
+            if(dateInput) dateInput.min = today.toISOString().split('T')[0];
         };
         initDatePicker();
 
@@ -390,10 +408,13 @@
             currentState.selectedItems = [];
             currentState.remainingSlots = currentState.maxSlots;
             currentState.currentZone = 'large';
+            currentState.packagePreview = null; // 重置套餐預覽
             
             alert(`已將組合加入清單！您可繼續挑選下一個組合。`);
             
-            if(currentState.mode === 'diy') renderItems('large');
+            // 重置 DIY 區域
+            document.getElementById('diy-selector-area').classList.remove('hidden');
+            renderItems('large');
             updateUI();
         }
 
@@ -416,6 +437,7 @@
             currentState.mode = mode;
             if (mode === 'diy') {
                 document.getElementById('diy-selector-area').classList.remove('hidden');
+                currentState.packagePreview = null;
                 renderItems('large');
                 goToStep(3);
             } else {
@@ -433,8 +455,7 @@
                 filtered.forEach(p => {
                     const card = document.createElement('div');
                     card.className = "package-card bg-white border-2 border-muzen p-6 rounded-2xl cursor-pointer transition";
-                    card.innerHTML = `<h4 class="font-bold text-muzen-stone mb-2">${p.name}</h4><p class="text-xs text-gray-400 mb-4">${p.desc}</p><div class="flex justify-between items-center"><span class="text-muzen-gold font-bold">$${p.price} / 盒</span><span class="text-[10px] bg-stone-100 px-2 py-1 rounded">點擊選用</span></div>`;
-                    /* --- [Fixed Click Logic] --- */
+                    card.innerHTML = `<h4 class="font-bold text-muzen-stone mb-2">${p.name}</h4><p class="text-xs text-gray-400 mb-4">${p.desc}</p><div class="flex justify-between items-center"><span class="text-muzen-gold font-bold">$${p.price} / 盒</span><span class="text-[10px] bg-stone-100 px-2 py-1 rounded">點擊選用套餐</span></div>`;
                     card.onclick = () => selectPackage(p);
                     grid.appendChild(card);
                 });
@@ -443,20 +464,31 @@
             document.getElementById('package-list-area').scrollIntoView({ behavior: 'smooth' });
         }
 
+        /* << LOGIC_ENHANCEMENT_START >> */
+        // 改良套餐選擇邏輯：自動勾選對應品項、更新預覽圖
         function selectPackage(pkg) {
+            // 1. 自動勾選對應品項
             currentState.selectedItems = pkg.items.map(itemId => products.find(p => p.id === itemId));
             currentState.remainingSlots = currentState.maxSlots - currentState.selectedItems.reduce((s, i) => s + i.volume, 0);
             
-            // 修正：點擊套餐後應自動導向 Step 3
+            // 2. 儲存套餐代表圖
+            currentState.packagePreview = pkg.preview;
+            
+            // 3. 隱藏 DIY 選擇區（因為是固定套餐），但保留總覽
             document.getElementById('diy-selector-area').classList.add('hidden');
+            
             updateUI();
             goToStep(3);
         }
+        /* << LOGIC_ENHANCEMENT_END >> */
 
         function renderItems(zoneType) {
             const grid = document.getElementById('items-grid');
             if(!grid) return;
             grid.innerHTML = '';
+            
+            /* << LOGIC_ENHANCEMENT_START >> */
+            // 盒型限制過濾：確保「四格盒」僅顯示適合其剩餘空間的品項
             products.filter(p => p.type === zoneType).forEach(p => {
                 const isSelectedInCurrent = currentState.selectedItems.find(i => i.id === p.id);
                 const canFit = p.volume <= currentState.remainingSlots;
@@ -466,9 +498,11 @@
                 const card = document.createElement('div');
                 card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelectedInCurrent ? 'selected' : ''} ${!canFit && !isSelectedInCurrent ? 'disabled' : ''}`;
                 card.innerHTML = `${badgeHtml}<div class="aspect-video rounded-lg overflow-hidden mb-2"><img src="${p.img}" class="w-full h-full object-cover"></div><div class="text-sm font-bold">${p.name}</div><div class="flex justify-between items-center mt-1"><span class="text-xs text-muzen-gold font-bold">$${p.price}</span><span class="text-[10px] bg-stone-100 px-1 rounded">佔 ${p.volume} 格</span></div>`;
-                card.onclick = () => canFit || isSelectedInCurrent ? toggleItem(p) : null;
+                card.onclick = () => (canFit || isSelectedInCurrent) ? toggleItem(p) : null;
                 grid.appendChild(card);
             });
+            /* << LOGIC_ENHANCEMENT_END >> */
+            
             document.getElementById('zone-title').innerText = zoneType === 'large' ? 'Zone 1: 大體積品項' : 'Zone 2: 點綴品項';
         }
 
@@ -476,9 +510,18 @@
             const idx = currentState.selectedItems.findIndex(i => i.id === item.id);
             if (idx > -1) { currentState.selectedItems.splice(idx, 1); currentState.remainingSlots += item.volume; }
             else { currentState.selectedItems.push(item); currentState.remainingSlots -= item.volume; }
-            if (currentState.currentZone === 'large' && currentState.remainingSlots < 2) { currentState.currentZone = 'small'; setTimeout(() => renderItems('small'), 300); }
-            else if (currentState.currentZone === 'small' && currentState.selectedItems.filter(i => i.type === 'large').length === 0) { currentState.currentZone = 'large'; renderItems('large'); }
+            
+            // 智慧分區邏輯優化
+            if (currentState.currentZone === 'large' && currentState.remainingSlots < 2) { 
+                currentState.currentZone = 'small'; 
+                setTimeout(() => renderItems('small'), 300); 
+            }
+            else if (currentState.currentZone === 'small' && currentState.selectedItems.filter(i => i.type === 'large').length === 0 && currentState.remainingSlots >= 2) { 
+                currentState.currentZone = 'large'; 
+                renderItems('large'); 
+            }
             else { renderItems(currentState.currentZone); }
+            
             updateUI();
         }
 
@@ -506,12 +549,13 @@
             list.innerHTML = currentState.selectedItems.length === 0 ? '<p class="text-gray-300 text-sm italic">尚未選擇品項...</p>' : currentState.selectedItems.map(i => `<div class="flex justify-between items-center text-sm py-1 border-b border-stone-50"><span class="font-medium">${i.name}</span><span class="font-mono text-muzen-gold">$${i.price}</span></div>`).join('');
 
             const currentSubtotal = currentState.selectedItems.reduce((s, i) => s + i.price, 0);
-            const boxCount = 100; 
+            const boxCount = 100; // 預設大宗訂購數 100 盒
             
             const finalizedItemsTotal = finalizedOrders.reduce((s, o) => s + o.subtotal, 0) * boxCount;
             const currentItemsTotal = currentSubtotal * boxCount;
             const totalItemSum = finalizedItemsTotal + currentItemsTotal;
             
+            // 判斷是否為四格盒（需加收包材費）
             const finalizedFourGrid = finalizedOrders.filter(o => o.boxId === 'craft-4').length;
             const currentIsFourGrid = currentState.boxId === 'craft-4' && currentState.selectedItems.length > 0 ? 1 : 0;
             const totalFourGridBoxCount = (finalizedFourGrid + currentIsFourGrid) * boxCount;
@@ -529,21 +573,40 @@
             document.getElementById('ladder-fee-display').innerText = `$${ladderFee.toLocaleString()}`;
             
             const grandTotal = totalItemSum + packFee + 500 + ladderFee;
-            document.getElementById('box-price').innerText = `$${currentSubtotal}`; 
+            const boxPriceEl = document.getElementById('box-price');
+            if(boxPriceEl) boxPriceEl.innerText = `$${currentSubtotal}`; 
+            
             document.getElementById('grand-total').innerText = `$${grandTotal.toLocaleString()}`;
             document.getElementById('bulk-discount-note').className = (finalizedOrders.length > 0 || currentSubtotal > 0) ? "mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-600" : "hidden";
 
+            /* << LOGIC_ENHANCEMENT_START >> */
+            // 動態視覺呈現優化：若是套餐則顯示實拍照，否則顯示格子拆解圖
             const visual = document.getElementById('visual-box-container'); 
             if (visual) {
-                visual.innerHTML = '';
-                for(let i=0; i<currentState.maxSlots; i++) {
-                    const slot = document.createElement('div'); slot.className = 'box-visual-slot'; visual.appendChild(slot);
+                if (currentState.packagePreview) {
+                    // 顯示套餐實拍照
+                    visual.innerHTML = `<div class="col-span-4 rounded-2xl overflow-hidden shadow-inner border-2 border-muzen-gold"><img src="${currentState.packagePreview}" class="w-full h-auto object-cover"></div>`;
+                } else {
+                    // 顯示 DIY 格子圖
+                    visual.innerHTML = '';
+                    for(let i=0; i<currentState.maxSlots; i++) {
+                        const slot = document.createElement('div'); slot.className = 'box-visual-slot'; visual.appendChild(slot);
+                    }
+                    let sIdx = 0;
+                    currentState.selectedItems.forEach(item => {
+                        if (visual.children[sIdx]) { 
+                            visual.children[sIdx].innerHTML = `<img src="${item.img}">`; 
+                            // 若是大體積佔兩格，處理視覺佔位
+                            if(item.volume > 1 && visual.children[sIdx+1]) {
+                                visual.children[sIdx].classList.add('col-span-2');
+                                visual.children[sIdx+1].style.display = 'none';
+                            }
+                            sIdx += item.volume; 
+                        }
+                    });
                 }
-                let sIdx = 0;
-                currentState.selectedItems.forEach(item => {
-                    if (visual.children[sIdx]) { visual.children[sIdx].innerHTML = `<img src="${item.img}">`; sIdx += item.volume; }
-                });
             }
+            /* << LOGIC_ENHANCEMENT_END >> */
         }
 
         function triggerAddonModal() { 
