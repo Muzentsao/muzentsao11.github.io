@@ -49,6 +49,11 @@
         #addon-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: white; width: 90%; max-width: 500px; padding: 2rem; border-radius: 1.5rem; }
         .package-card:hover { border-color: #b0916a; background: #fdfaf7; }
+        
+        /* --- Non-destructive Selection Logic Start --- */
+        .selection-count-badge { position: absolute; top: -5px; right: -5px; background: #b0916a; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .finalized-order-item { border-left: 3px solid #b0916a; padding-left: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 8px; border-radius: 0 8px 8px 0; }
+        /* --- Non-destructive Selection Logic End --- */
         /* --- Business Logic & Pricing System End --- */
     </style>
 </head>
@@ -229,22 +234,34 @@
                 <div class="w-full lg:w-80">
                     <div class="bg-white p-6 rounded-2xl border border-muzen sticky top-24">
                         <h3 class="font-bold border-b pb-4 mb-4 uppercase tracking-tighter">我的餐盒內容</h3>
+                        
+                        <div id="order-summary-area" class="mb-4">
+                            <p class="text-[10px] text-gray-400 font-bold mb-2">已加入報價清單：</p>
+                            <div id="finalized-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                <p class="text-xs text-gray-300 italic">尚未確認任何組合...</p>
+                            </div>
+                        </div>
+                        <hr class="mb-4">
+                        <p class="text-[10px] text-muzen-gold font-bold mb-1">當前選購口味 (暫存)：</p>
                         <div id="cart-list" class="space-y-3 mb-6 min-h-[100px]"></div>
-                        <div class="border-t pt-4 space-y-2">
-                            <div class="flex justify-between text-sm"><span>預估單盒價</span><span id="box-price" class="font-bold">$0</span></div>
-                            <div class="flex justify-between text-xs text-gray-400"><span>盒數：</span><span>100 盒</span></div>
+                        
+                        <button id="add-to-list-btn" onclick="finalizeCurrentOrder()" class="w-full py-2 mb-4 bg-muzen-gold text-white text-xs font-bold rounded-lg hover:opacity-90 transition shadow-sm">
+                            確認此組合並加入清單
+                        </button>
+                        <div class="border-t pt-4 space-y-2 text-muzen-stone">
+                            <div class="flex justify-between text-xs"><span>餐點品項小計</span><span id="items-subtotal">$0</span></div>
                             <div id="packaging-fee-row" class="flex justify-between text-xs text-blue-500 hidden">
-                                <span>包材費 (+$5/盒)：</span><span id="packaging-fee-total">$0</span>
+                                <span>包材費 ($5 x 4格盒數)：</span><span id="packaging-fee-total">$0</span>
                             </div>
                             <div class="flex justify-between text-xs text-gray-400 pt-2"><span>物流交通費：</span><span>$500</span></div>
                             <div class="flex justify-between text-xs text-gray-400"><span>爬梯人力費：</span><span id="ladder-fee-display">$0</span></div>
-                            <div class="flex justify-between text-xl font-bold border-t pt-2 text-red-700"><span>總計</span><span id="grand-total">$0</span></div>
+                            <div class="flex justify-between text-xl font-bold border-t pt-2 text-red-700"><span>預計總金額</span><span id="grand-total">$0</span></div>
                         </div>
-                        <div id="bulk-discount-note" class="hidden mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-600">
-                            <strong>大宗優惠提醒：</strong>已達 100 盒門檻，業務將於正式報價時提供優惠。
+                        <div id="bulk-discount-note" class="hidden mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-600 leading-relaxed">
+                            <strong>大宗優惠提醒：</strong>業務將於正式報價時提供免運或包材優惠。
                         </div>
                         <button onclick="triggerAddonModal()" class="w-full bg-stone-800 text-white py-4 rounded-xl mt-6 font-bold hover:bg-black transition shadow-lg">產生虛擬報價單</button>
-                        <p class="text-[10px] text-gray-400 text-center mt-4">最終價格以正式報價單為主</p>
+                        <p class="text-[10px] text-gray-400 text-center mt-4 italic">最終價格以正式報價單為主</p>
                     </div>
                 </div>
             </div>
@@ -256,9 +273,9 @@
             <h3 class="text-xl font-bold mb-2">附加服務與加購</h3>
             <p class="text-sm font-bold text-muzen-gold mb-4">紙袋加購選擇 (必選規格)</p>
             <div class="grid grid-cols-3 gap-3 mb-8">
-                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="L" class="hidden peer" checked><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50"><span class="block text-xs font-bold">大尺寸</span></div></label>
-                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="M" class="hidden peer"><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50"><span class="block text-xs font-bold">中尺寸</span></div></label>
-                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="S" class="hidden peer"><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50"><span class="block text-xs font-bold">小尺寸</span></div></label>
+                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="L" class="hidden peer" checked><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50 transition"><span class="block text-xs font-bold">大尺寸</span></div></label>
+                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="M" class="hidden peer"><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50 transition"><span class="block text-xs font-bold">中尺寸</span></div></label>
+                <label class="cursor-pointer"><input type="radio" name="paper-bag" value="S" class="hidden peer"><div class="text-center p-3 border rounded-xl peer-checked:border-muzen-gold peer-checked:bg-stone-50 transition"><span class="block text-xs font-bold">小尺寸</span></div></label>
             </div>
             <div class="flex gap-3">
                 <button onclick="closeAddonModal()" class="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-bold">返回修改</button>
@@ -284,22 +301,17 @@
             { id: 'D07', name: '迷你烏龍茶生凍捲', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=Roll' }
         ];
 
-        // Excel [組合建議] 轉換為 JSON
         const packages = [
-            { 
-                id: 'P01', name: '均衡型建議 (兩鹹兩甜)', box: 'craft-4', price: 200, 
-                items: ['D01', 'D02', 'S04', 'S05'], desc: '洛神花瑪德蓮 + 磅蛋糕 + 花壽司 + 全麥三明治' 
-            },
-            { 
-                id: 'P02', name: '甜點型建議 (四甜)', box: 'craft-4', price: 200, 
-                items: ['D03', 'D01', 'D05', 'D04'], desc: '小倉月燒 + 瑪德蓮 + 綜合水果 + 馬卡龍' 
-            },
-            { 
-                id: 'P03', name: '豐富型建議 (三鹹三甜)', box: 'classic-6', price: 300, 
-                items: ['S04', 'S05', 'D06', 'D04', 'D03', 'D07'], desc: '花壽司 + 三明治 + 菠菜蚌 + 馬卡龍 + 月燒 + 生凍捲' 
-            }
+            { id: 'P01', name: '均衡型建議 (兩鹹兩甜)', box: 'craft-4', price: 200, items: ['D01', 'D02', 'S04', 'S05'], desc: '瑪德蓮+磅蛋糕+壽司+三明治' },
+            { id: 'P02', name: '甜點型建議 (四甜)', box: 'craft-4', price: 200, items: ['D03', 'D01', 'D05', 'D04'], desc: '月燒+瑪德蓮+水果+馬卡龍' },
+            { id: 'P03', name: '豐富型建議 (三鹹三甜)', box: 'classic-6', price: 300, items: ['S04', 'S05', 'D06', 'D04', 'D03', 'D07'], desc: '壽司+三明治+菠菜蚌+馬卡龍+月燒+生凍捲' }
         ];
         /* --- Business Logic: Excel Data Import End --- */
+
+        /* --- Non-destructive Selection Logic Start --- */
+        // 全域選購暫存陣列：儲存已確認的 [盒型+品項] 組合
+        let finalizedOrders = [];
+        /* --- Non-destructive Selection Logic End --- */
 
         let currentState = {
             step: 1, boxId: '', boxName: '', maxSlots: 0, remainingSlots: 0, mode: '', selectedItems: [], currentZone: 'large'
@@ -329,21 +341,87 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        /* --- Non-destructive Selection Logic Start --- */
+        // 修改後的盒型切換函式：移除破壞性警告，自動暫存當前選擇
         function selectBox(id, name, avgPrice, slots) {
-            if (currentState.boxId !== '' && currentState.boxId !== id && currentState.selectedItems.length > 0) {
-                if (!confirm('更改盒型將會清空目前選擇，確定嗎？')) return;
-                currentState.selectedItems = []; updateUI();
+            // 如果當前已有選好的品項且換盒型，則提示或自動處理
+            if (currentState.selectedItems.length > 0 && currentState.boxId !== id) {
+                console.log("切換盒型，保留當前暫存組合資料");
             }
+
             currentState.boxId = id; currentState.boxName = name;
-            currentState.maxSlots = slots; currentState.remainingSlots = slots;
+            currentState.maxSlots = slots; 
+            
+            // 重新計算剩餘格子數 (根據現有 selectedItems)
+            const usedSlots = currentState.selectedItems.reduce((s, i) => s + i.volume, 0);
+            currentState.remainingSlots = slots - usedSlots;
+
+            // UI 反饋
             document.querySelectorAll('.box-card').forEach(c => c.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
+            const card = Array.from(document.querySelectorAll('.box-card')).find(c => c.innerHTML.includes(name));
+            if (card) card.classList.add('selected');
+            
             document.getElementById('mode-selection').classList.remove('hidden');
             document.getElementById('package-list-area').classList.add('hidden');
+            document.getElementById('slots-count').innerText = currentState.remainingSlots;
+            
+            // 重新渲染視覺模擬與品項清單
+            renderVisualSlots(slots);
+            if(currentState.mode === 'diy') renderItems(currentState.currentZone);
+            updateUI();
+            
             document.getElementById('mode-selection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        /* --- [Muzen Update] 套餐模式邏輯 --- */
+        function renderVisualSlots(slots) {
+            const visualBox = document.getElementById('visual-box-container');
+            visualBox.innerHTML = '';
+            for(let i=0; i<slots; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'box-visual-slot';
+                slot.id = `visual-slot-${i}`;
+                slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
+                visualBox.appendChild(slot);
+            }
+        }
+
+        // 確認並將目前餐盒配置加入「報價清單」
+        function finalizeCurrentOrder() {
+            if (currentState.selectedItems.length === 0) {
+                alert('請先挑選點心後再加入清單。'); return;
+            }
+            if (currentState.remainingSlots > 0) {
+                if (!confirm(`餐盒尚未填滿 (還剩 ${currentState.remainingSlots} 格)，確定要加入清單嗎？`)) return;
+            }
+
+            const newOrder = {
+                boxId: currentState.boxId,
+                boxName: currentState.boxName,
+                items: [...currentState.selectedItems],
+                subtotal: currentState.selectedItems.reduce((s, i) => s + i.price, 0)
+            };
+
+            finalizedOrders.push(newOrder);
+            currentState.selectedItems = []; // 加入清單後清空當前工作區
+            currentState.remainingSlots = currentState.maxSlots;
+            currentState.currentZone = 'large';
+            
+            alert(`已將一組【${newOrder.boxName}】加入清單！您可繼續挑選其他盒型。`);
+            
+            renderItems('large');
+            updateUI();
+        }
+
+        // 輔助函式：計算特定口味在所有訂單中出現的次數
+        function getItemSelectionCount(itemId) {
+            let countInCurrent = currentState.selectedItems.filter(i => i.id === itemId).length;
+            let countInFinalized = finalizedOrders.reduce((acc, order) => {
+                return acc + order.items.filter(i => i.id === itemId).length;
+            }, 0);
+            return countInCurrent + countInFinalized;
+        }
+        /* --- Non-destructive Selection Logic End --- */
+
         function setOrderMode(mode) {
             currentState.mode = mode;
             if (mode === 'diy') {
@@ -359,21 +437,13 @@
             const grid = document.getElementById('package-grid');
             grid.innerHTML = '';
             const filtered = packages.filter(p => p.box === currentState.boxId);
-            
             if (filtered.length === 0) {
-                grid.innerHTML = '<p class="col-span-2 text-center text-gray-400 italic">此盒型暫無建議組合，請使用自由配。</p>';
+                grid.innerHTML = '<p class="col-span-2 text-center text-gray-400 italic text-xs">此盒型暫無建議組合。</p>';
             } else {
                 filtered.forEach(p => {
                     const card = document.createElement('div');
                     card.className = "package-card bg-white border-2 border-muzen p-6 rounded-2xl cursor-pointer transition";
-                    card.innerHTML = `
-                        <h4 class="font-bold text-muzen-stone mb-2">${p.name}</h4>
-                        <p class="text-xs text-gray-400 mb-4">${p.desc}</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-muzen-gold font-bold">$${p.price} / 盒</span>
-                            <span class="text-[10px] bg-stone-100 px-2 py-1 rounded">點擊選用</span>
-                        </div>
-                    `;
+                    card.innerHTML = `<h4 class="font-bold text-muzen-stone mb-2">${p.name}</h4><p class="text-xs text-gray-400 mb-4">${p.desc}</p><div class="flex justify-between items-center"><span class="text-muzen-gold font-bold">$${p.price} / 盒</span><span class="text-[10px] bg-stone-100 px-2 py-1 rounded">點擊選用</span></div>`;
                     card.onclick = () => selectPackage(p);
                     grid.appendChild(card);
                 });
@@ -385,22 +455,28 @@
         function selectPackage(pkg) {
             currentState.selectedItems = pkg.items.map(itemId => products.find(p => p.id === itemId));
             currentState.remainingSlots = currentState.maxSlots - currentState.selectedItems.reduce((s, i) => s + i.volume, 0);
-            document.getElementById('diy-selector-area').classList.add('hidden'); // 套餐模式隱藏 DIY 選購區
+            document.getElementById('diy-selector-area').classList.add('hidden');
             updateUI();
             goToStep(3);
         }
-        /* --- [Muzen Update] 結束 --- */
 
         function renderItems(zoneType) {
             const grid = document.getElementById('items-grid');
             grid.innerHTML = '';
             products.filter(p => p.type === zoneType).forEach(p => {
-                const isSelected = currentState.selectedItems.find(i => i.id === p.id);
+                const isSelectedInCurrent = currentState.selectedItems.find(i => i.id === p.id);
                 const canFit = p.volume <= currentState.remainingSlots;
+                
+                /* --- Non-destructive Selection Logic Start --- */
+                // 視覺標記：顯示該口味已在整個報價清單中選購的總數
+                const totalCount = getItemSelectionCount(p.id);
+                const badgeHtml = totalCount > 0 ? `<div class="selection-count-badge">${totalCount}</div>` : '';
+                /* --- Non-destructive Selection Logic End --- */
+
                 const card = document.createElement('div');
-                card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelected ? 'selected' : ''} ${!canFit && !isSelected ? 'disabled' : ''}`;
-                card.innerHTML = `<div class="aspect-video rounded-lg overflow-hidden mb-2"><img src="${p.img}" class="w-full h-full object-cover"></div><div class="text-sm font-bold">${p.name}</div><div class="flex justify-between items-center mt-1"><span class="text-xs text-muzen-gold font-bold">$${p.price}</span><span class="text-[10px] bg-stone-100 px-1 rounded">佔 ${p.volume} 格</span></div>`;
-                card.onclick = () => canFit || isSelected ? toggleItem(p) : null;
+                card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelectedInCurrent ? 'selected' : ''} ${!canFit && !isSelectedInCurrent ? 'disabled' : ''}`;
+                card.innerHTML = `${badgeHtml}<div class="aspect-video rounded-lg overflow-hidden mb-2"><img src="${p.img}" class="w-full h-full object-cover"></div><div class="text-sm font-bold">${p.name}</div><div class="flex justify-between items-center mt-1"><span class="text-xs text-muzen-gold font-bold">$${p.price}</span><span class="text-[10px] bg-stone-100 px-1 rounded">佔 ${p.volume} 格</span></div>`;
+                card.onclick = () => canFit || isSelectedInCurrent ? toggleItem(p) : null;
                 grid.appendChild(card);
             });
             document.getElementById('zone-title').innerText = zoneType === 'large' ? 'Zone 1: 大體積品項' : 'Zone 2: 點綴品項';
@@ -418,34 +494,76 @@
 
         function updateUI() {
             document.getElementById('slots-count').innerText = currentState.remainingSlots;
+            
+            /* --- Non-destructive Selection Logic Start --- */
+            // 更新報價清單概況 (Summary)
+            const summaryList = document.getElementById('finalized-list');
+            if (finalizedOrders.length === 0) {
+                summaryList.innerHTML = '<p class="text-xs text-gray-300 italic">尚未確認任何組合...</p>';
+            } else {
+                summaryList.innerHTML = finalizedOrders.map((order, idx) => `
+                    <div class="finalized-order-item shadow-sm">
+                        <div class="flex justify-between font-bold text-[11px] text-muzen-stone">
+                            <span>#${idx+1} ${order.boxName}</span>
+                            <span class="text-muzen-gold">$${order.subtotal}</span>
+                        </div>
+                        <p class="text-[9px] text-gray-400 truncate">${order.items.map(i=>i.name).join(', ')}</p>
+                    </div>
+                `).join('');
+            }
+            /* --- Non-destructive Selection Logic End --- */
+
             const list = document.getElementById('cart-list');
             list.innerHTML = currentState.selectedItems.length === 0 ? '<p class="text-gray-300 text-sm italic">尚未選擇品項...</p>' : currentState.selectedItems.map(i => `<div class="flex justify-between items-center text-sm py-1 border-b border-stone-50"><span class="font-medium">${i.name}</span><span class="font-mono text-muzen-gold">$${i.price}</span></div>`).join('');
 
-            const perBox = currentState.selectedItems.reduce((s, i) => s + i.price, 0);
-            const boxCount = 100;
-            let packFee = (currentState.boxId === 'craft-4') ? 5 * boxCount : 0;
+            /* --- Non-destructive Selection Logic Start --- */
+            // 金額重構：加總 [已確認組合] + [當前暫存組合]
+            const finalizedTotal = finalizedOrders.reduce((sum, o) => sum + (o.subtotal * 100), 0); // 假設單次 100 盒
+            const currentSubtotal = currentState.selectedItems.reduce((s, i) => s + i.price, 0);
+            const boxCount = 100; // 定義每種組合基準為 100 盒 (可視需求調整為動態)
+            
+            const totalItemSum = (finalizedOrders.reduce((s, o) => s + o.subtotal, 0) + currentSubtotal) * boxCount;
+            
+            // 包材費邏輯：判斷清單中屬於「四格盒」的數量 (僅限 finalizedOrders)
+            const fourGridBoxOrders = finalizedOrders.filter(o => o.boxId === 'craft-4').length;
+            const currentIsFourGrid = currentState.boxId === 'craft-4' && currentState.selectedItems.length > 0 ? 1 : 0;
+            const totalFourGridBoxCount = (fourGridBoxOrders + currentIsFourGrid) * boxCount;
+            
+            let packFee = totalFourGridBoxCount * 5;
             document.getElementById('packaging-fee-row').className = packFee > 0 ? "flex justify-between text-xs text-blue-500" : "hidden";
-            document.getElementById('packaging-fee-total').innerText = `$${packFee}`;
+            document.getElementById('packaging-fee-total').innerText = `$${packFee.toLocaleString()}`;
+            
+            document.getElementById('items-subtotal').innerText = `$${totalItemSum.toLocaleString()}`;
+            
             const ladderFee = parseInt(document.getElementById('ladder-fee').value);
-            document.getElementById('ladder-fee-display').innerText = `$${ladderFee}`;
-            const grand = (perBox * boxCount) + packFee + 500 + ladderFee;
-            document.getElementById('box-price').innerText = `$${perBox}`;
-            document.getElementById('grand-total').innerText = `$${grand.toLocaleString()}`;
-            document.getElementById('bulk-discount-note').className = boxCount >= 100 ? "mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-600" : "hidden";
+            document.getElementById('ladder-fee-display').innerText = `$${ladderFee.toLocaleString()}`;
+            
+            const grandTotal = totalItemSum + packFee + 500 + ladderFee;
+            document.getElementById('box-price').innerText = `$${currentSubtotal}`; // 顯示當前這盒的單價
+            document.getElementById('grand-total').innerText = `$${grandTotal.toLocaleString()}`;
+            document.getElementById('bulk-discount-note').className = (finalizedOrders.length > 0 || currentSubtotal > 0) ? "mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-600" : "hidden";
+            /* --- Non-destructive Selection Logic End --- */
 
-            const visual = document.getElementById('visual-box-container'); visual.innerHTML = '';
-            for(let i=0; i<currentState.maxSlots; i++) {
-                const slot = document.createElement('div'); slot.className = 'box-visual-slot'; visual.appendChild(slot);
+            // 視覺模擬更新
+            const visual = document.getElementById('visual-box-container'); 
+            if (visual) {
+                visual.innerHTML = '';
+                for(let i=0; i<currentState.maxSlots; i++) {
+                    const slot = document.createElement('div'); slot.className = 'box-visual-slot'; visual.appendChild(slot);
+                }
+                let sIdx = 0;
+                currentState.selectedItems.forEach(item => {
+                    if (visual.children[sIdx]) { visual.children[sIdx].innerHTML = `<img src="${item.img}">`; sIdx += item.volume; }
+                });
             }
-            let sIdx = 0;
-            currentState.selectedItems.forEach(item => {
-                if (visual.children[sIdx]) { visual.children[sIdx].innerHTML = `<img src="${item.img}">`; sIdx += item.volume; }
-            });
         }
 
-        function triggerAddonModal() { if (currentState.selectedItems.length === 0) return alert('請先選擇點心'); document.getElementById('addon-modal').style.display = 'flex'; }
+        function triggerAddonModal() { 
+            if (finalizedOrders.length === 0 && currentState.selectedItems.length === 0) return alert('請先確認至少一組組合。'); 
+            document.getElementById('addon-modal').style.display = 'flex'; 
+        }
         function closeAddonModal() { document.getElementById('addon-modal').style.display = 'none'; }
-        function finalQuote() { closeAddonModal(); window.print(); }
+        function finalQuote() { closeAddonModal(); alert("虛擬報價單產出成功！(包含多重餐盒組合資訊)"); window.print(); }
     </script>
 </body>
 </html>
