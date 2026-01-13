@@ -94,7 +94,7 @@
                     <button onclick="goToStep(2)" class="bg-[#333] text-white px-10 py-4 rounded-full font-bold hover:bg-black transition shadow-lg flex items-center gap-2">
                         下一步：選擇盒型與預算 <span>→</span>
                     </button>
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -219,18 +219,27 @@
     </main>
 
     <script>
-        // 資料定義 (實際可連動 Excel 資料)
-        // [Muzen Update] 修改品項定義，增加 volume (格子佔比) 邏輯
+        /* [Muzen Item Update] 從 Excel 讀取並分類餐點內容 */
         const products = [
-            { id: 'S01', name: '法式鹹派', type: 'large', volume: 2, price: 65, img: 'https://via.placeholder.com/150?text=Quiche' },
-            { id: 'S02', name: '牛肉迷你漢堡', type: 'large', volume: 2, price: 75, img: 'https://via.placeholder.com/150?text=Burger' },
-            { id: 'D01', name: '瑪德蓮', type: 'small', volume: 1, price: 45, img: 'https://via.placeholder.com/150?text=Madeleine' },
-            { id: 'D02', name: '檸檬塔', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=LemonTart' },
-            { id: 'D03', name: '馬卡龍', type: 'small', volume: 1, price: 40, img: 'https://via.placeholder.com/150?text=Macaron' },
-            { id: 'D04', name: '可麗露', type: 'small', volume: 1, price: 60, img: 'https://via.placeholder.com/150?text=Canelé' }
-        ];
+            // 鹹點系列 (Savory / Zone 1 - 體積 2)
+            { id: 'S01', name: '法式經典鹹派', type: 'large', volume: 2, price: 65, img: 'https://via.placeholder.com/150?text=Quiche' },
+            { id: 'S02', name: '德式香腸捲', type: 'large', volume: 2, price: 60, img: 'https://via.placeholder.com/150?text=Sausage+Roll' },
+            { id: 'S03', name: '迷你燻雞三明治', type: 'large', volume: 2, price: 55, img: 'https://via.placeholder.com/150?text=Chicken+Sandwich' },
+            { id: 'S04', name: '松露野菇塔', type: 'large', volume: 2, price: 80, img: 'https://via.placeholder.com/150?text=Truffle+Tart' },
+            { id: 'S05', name: '照燒雞腿堡', type: 'large', volume: 2, price: 75, img: 'https://via.placeholder.com/150?text=Teriyaki+Burger' },
 
-        // 修改開始：切換邏輯
+            // 精緻甜點與水果系列 (Dessert & Fruit / Zone 2 - 體積 1)
+            { id: 'D01', name: '法式瑪德蓮', type: 'small', volume: 1, price: 45, img: 'https://via.placeholder.com/150?text=Madeleine' },
+            { id: 'D02', name: '老奶奶檸檬蛋糕', type: 'small', volume: 1, price: 50, img: 'https://via.placeholder.com/150?text=Lemon+Cake' },
+            { id: 'D03', name: '繽紛馬卡龍', type: 'small', volume: 1, price: 40, img: 'https://via.placeholder.com/150?text=Macaron' },
+            { id: 'D04', name: '法式可麗露', type: 'small', volume: 1, price: 60, img: 'https://via.placeholder.com/150?text=Canele' },
+            { id: 'D05', name: '巧克力布朗尼', type: 'small', volume: 1, price: 45, img: 'https://via.placeholder.com/150?text=Brownie' },
+            { id: 'D06', name: '季節水果杯', type: 'small', volume: 1, price: 55, img: 'https://via.placeholder.com/150?text=Fruit+Cup' },
+            { id: 'D07', name: '一口鳳梨酥', type: 'small', volume: 1, price: 35, img: 'https://via.placeholder.com/150?text=Pineapple+Cake' },
+            { id: 'D08', name: '黑糖蕨餅', type: 'small', volume: 1, price: 40, img: 'https://via.placeholder.com/150?text=Warabi+Mochi' }
+        ];
+        /* [Muzen Item Update] 結束 */
+
         let currentState = {
             step: 1,
             boxId: '',
@@ -244,7 +253,6 @@
         };
 
         function goToStep(step) {
-            // [Muzen Update] 強化 Step 1 的欄位必填檢查與統編格式檢查
             if (step > currentState.step) {
                 if (currentState.step === 1) {
                     const company = document.getElementById('company-name').value.trim();
@@ -262,13 +270,10 @@
                     }
                 }
             }
-            // [Muzen Update] 結束
 
-            // 修改開始：狀態管理與動畫控制
             document.querySelectorAll('.step-container').forEach(s => s.classList.remove('active'));
             document.getElementById(`step-${step}`).classList.add('active');
             
-            // 進度條與標籤同步
             document.querySelectorAll('.progress-dot').forEach((dot, idx) => {
                 if (idx < step) dot.classList.add('active');
                 else dot.classList.remove('active');
@@ -278,19 +283,17 @@
             document.getElementById('step-label').innerText = labels[step-1];
             currentState.step = step;
             
-            // 平滑滾動至頂部
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function selectBox(id, name, avgPrice, slots) {
-            // [Muzen Update] 狀態同步：若更換盒型，自動清空原先選好的 DIY 品項，防止容量邏輯衝突
             if (currentState.boxId !== '' && currentState.boxId !== id && currentState.selectedItems.length > 0) {
                 if (confirm('更改盒型將會清空目前已選取的點心，確定要更改嗎？')) {
                     currentState.selectedItems = [];
                     currentState.currentZone = 'large';
                     updateUI();
                 } else {
-                    return; // 使用者取消更換
+                    return;
                 }
             }
 
@@ -299,14 +302,12 @@
             currentState.maxSlots = slots;
             currentState.remainingSlots = slots;
             
-            // UI 反饋
             document.querySelectorAll('.box-card').forEach(c => c.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
             
             document.getElementById('mode-selection').classList.remove('hidden');
             document.getElementById('slots-count').innerText = slots;
             
-            // [Muzen Update] 動態生成視覺模擬格子
             const visualBox = document.getElementById('visual-box-container');
             visualBox.innerHTML = '';
             for(let i=0; i<slots; i++) {
@@ -317,7 +318,6 @@
                 visualBox.appendChild(slot);
             }
 
-            // 平滑滾動到模式選擇區塊
             document.getElementById('mode-selection').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -328,7 +328,6 @@
                 goToStep(3);
             } else {
                 alert('固定套餐正在為您加載主廚精選圖庫...');
-                // 此處可擴充固定套餐邏輯
             }
         }
 
@@ -336,14 +335,11 @@
             const grid = document.getElementById('items-grid');
             grid.innerHTML = '';
             
-            // [Muzen Update] 智慧分區挑選機制：過濾剩餘空間不足的品項
             products.forEach(p => {
                 const isSelected = currentState.selectedItems.find(i => i.id === p.id);
-                // 判斷剩餘空間是否足以放入該品項
                 const canFit = p.volume <= currentState.remainingSlots;
                 const isTypeMatch = p.type === zoneType;
                 
-                // 如果是當前區域類型，則顯示；若空間不足則設為 Disabled
                 if (isTypeMatch) {
                     const card = document.createElement('div');
                     card.className = `item-card border p-3 rounded-xl bg-white shadow-sm cursor-pointer ${isSelected ? 'selected' : ''} ${!canFit && !isSelected ? 'disabled' : ''}`;
@@ -370,11 +366,9 @@
             const index = currentState.selectedItems.findIndex(i => i.id === item.id);
             
             if (index > -1) {
-                // 取消選取
                 currentState.selectedItems.splice(index, 1);
                 currentState.remainingSlots += item.volume;
             } else {
-                // 加入選取
                 if (currentState.remainingSlots < item.volume) {
                     alert('空間不足，請選擇較小的品項或移除已選項目。'); return;
                 }
@@ -382,12 +376,10 @@
                 currentState.remainingSlots -= item.volume;
             }
 
-            // [Muzen Update] 智慧路徑引導：Zone 1 完成後自動切換 Zone 2
             if (currentState.currentZone === 'large' && currentState.remainingSlots < 2) {
                 currentState.currentZone = 'small';
                 setTimeout(() => renderItems('small'), 300);
             } else if (currentState.currentZone === 'small' && currentState.selectedItems.filter(i => i.type === 'large').length === 0) {
-                 // 若大體積品項被清空，自動切回 Zone 1
                  currentState.currentZone = 'large';
                  renderItems('large');
             } else {
@@ -412,12 +404,10 @@
                 `).join('');
             }
 
-            // 動態金額計算
             const subtotal = currentState.selectedItems.reduce((sum, i) => sum + i.price, 0);
             document.getElementById('box-price').innerText = `$${subtotal}`;
             document.getElementById('grand-total').innerText = `$${(subtotal * 100).toLocaleString()}`;
 
-            // 視覺模擬連動
             for(let i=0; i<currentState.maxSlots; i++) {
                 const slot = document.getElementById(`visual-slot-${i}`);
                 if (slot) slot.innerHTML = `<span class="text-[10px] text-stone-300 font-mono">${i+1}</span>`;
@@ -440,7 +430,6 @@
             alert('模擬報價單產出成功！資訊已同步至 Database。');
             window.print();
         }
-        // 修改結束：切換邏輯
     </script>
 </body>
 </html>
